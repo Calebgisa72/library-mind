@@ -1,0 +1,54 @@
+# Keep the build context small — anything ignored here is invisible to Docker.
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Python tooling
+__pycache__
+*.py[cod]
+.venv
+venv
+.mypy_cache
+.ruff_cache
+.pytest_cache
+.coverage
+htmlcov
+*.egg-info
+
+# Local-only files
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Documentation & internal collaboration files
+docs
+*.md
+!README.md
+Agent.md
+Guidelines.md
+handoff.md
+
+# Frontend (built separately when present)
+frontend
+node_modules
+
+# Runtime / persistent data
+data/chroma
+data/cache
+logs
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# CI
+.github

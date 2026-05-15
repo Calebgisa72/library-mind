@@ -1,0 +1,65 @@
+###############################################################################
+# LibraryMind — Continuous Integration
+#
+# Runs on every PR into main and on direct pushes to main.
+# Phase 0 wires lint + typecheck + a smoke test that imports the app.
+# Real test execution is enabled progressively as test files land in
+# later phases.
+###############################################################################
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs to save CI minutes when pushing frequently.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: lint • typecheck • test
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Ruff (lint + import order)
+        run: ruff check app scripts tests
+
+      - name: Black (formatting)
+        run: black --check app scripts tests
+
+      - name: Mypy (static types)
+        run: mypy app
+
+      - name: Pytest
+        # The test suite is empty in Phase 0; --collect-only verifies the
+        # configuration is sound without erroring on "no tests collected".
+        run: pytest --collect-only -q
+        env:
+          # A throwaway key satisfies the "at least one provider" startup check
+          # so imports succeed in CI without leaking real credentials.
+          OPENAI_API_KEY: ci-placeholder-not-a-real-key
