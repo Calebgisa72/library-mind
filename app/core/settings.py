@@ -64,7 +64,11 @@ class Settings(BaseSettings):
     chroma_persist_dir: str = "./data/chroma"
     chroma_collection_name: str = "books"
     rag_top_k: int = Field(default=4, ge=1, le=20)
-    rag_relevance_threshold: float = Field(default=0.25, ge=0.0, le=1.0)
+    # Similarity threshold (NOT distance). ChromaDB returns cosine distance,
+    # which we convert to similarity via `1 - distance` before comparing.
+    # 0.0 = unrelated, 1.0 = identical. Results below this are discarded.
+    # See docs/ARCHITECTURE.md § Distance vs Similarity for the rationale.
+    rag_relevance_threshold: float = Field(default=0.35, ge=0.0, le=1.0)
 
     # ── Cache ───────────────────────────────────────────────────────────────
     redis_url: str = "redis://localhost:6379/0"
@@ -74,6 +78,12 @@ class Settings(BaseSettings):
     # ── Rate limiting ───────────────────────────────────────────────────────
     rate_limit_per_minute: int = Field(default=60, ge=1)
     rate_limit_burst: int = Field(default=10, ge=1)
+
+    # ── Cost controls ───────────────────────────────────────────────────────
+    # Soft daily budget cap in USD. The /health endpoint reports daily spend
+    # against this number; in later phases a warning is logged when approaching
+    # the limit. A value of 0.0 disables the cap (tracking still happens).
+    budget_daily_limit_usd: float = Field(default=0.0, ge=0.0)
 
     # ── Chatbot ─────────────────────────────────────────────────────────────
     chat_history_max_messages: int = Field(default=10, ge=1, le=100)

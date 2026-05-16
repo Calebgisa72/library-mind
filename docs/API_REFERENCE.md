@@ -57,7 +57,7 @@ Semantic search over the catalogue.
 }
 ```
 
-`score` is cosine similarity in the range `[0, 1]`; higher is more similar. Results below `RAG_RELEVANCE_THRESHOLD` are excluded.
+`score` is cosine **similarity** in the range `[0, 1]`; higher is more similar. The vector store returns cosine *distance*; the service converts it via `similarity = max(0.0, 1.0 - distance)` before applying `RAG_RELEVANCE_THRESHOLD`. Results below the threshold are excluded. See `docs/ARCHITECTURE.md` § *Distance vs Similarity* for the rationale.
 
 ---
 
@@ -211,11 +211,12 @@ Operational status and observability.
   },
   "cache": "connected",
   "daily_cost_usd": 0.0247,
+  "daily_budget_usd": 5.0,
   "request_count_today": 18
 }
 ```
 
-`status` is `ok` if and only if at least one provider is configured and the application has not entered a degraded state. `cache` is `connected | unavailable`. The endpoint never makes a paid AI call; it reads in-memory counters only.
+`status` is `ok` if and only if at least one provider is configured and the application has not entered a degraded state. `cache` is `connected | unavailable`. `daily_budget_usd` reflects `BUDGET_DAILY_LIMIT_USD`; it is `null` (or omitted) when the cap is disabled. The endpoint never makes a paid AI call; it reads in-memory counters only.
 
 ---
 

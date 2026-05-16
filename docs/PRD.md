@@ -53,6 +53,8 @@ All endpoints accept and return JSON. All input is validated by Pydantic models 
 
 The application must respond to a cache-hit query in under 100 ms locally. A cache-miss query depends primarily on the upstream provider's latency; we target sub-three-second end-to-end response for a typical RAG question. The system must survive primary-provider failure without restart: removing the primary key and retrying must produce a successful response from the fallback provider, with the retry attempt visible in logs. The token-bucket rate limiter must reject the 61st request in a 60-second window when configured at 60 RPM. The usage tracker must report a non-zero daily cost after any non-cached AI call.
 
+A soft daily budget cap (`BUDGET_DAILY_LIMIT_USD`, default disabled) is exposed for operators who want a guard rail against runaway costs from bugs or abuse. Tracking and reporting are mandatory; enforcement is a future enhancement and is intentionally left out of the lab's acceptance criteria.
+
 Logs must be structured JSON in production and human-readable in development. Every log line associated with a request must carry the same request ID. Every AI call must log provider, model, prompt token count, completion token count, and estimated cost.
 
 ## 9. System Behaviours

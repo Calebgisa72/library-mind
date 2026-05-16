@@ -72,6 +72,7 @@ library-mind/
 │   ├── services/         # Layer 2: business orchestration
 │   ├── providers/        # Layer 3: AI vendor abstractions + failover
 │   ├── infrastructure/   # Layer 4: cache, rate limiter, usage tracker, vector store
+│   ├── prompts/          # Versioned prompt templates (RAG, chatbot, classifier, summariser)
 │   ├── schemas/          # Pydantic request/response models
 │   ├── core/             # Settings, structured logging, exception hierarchy
 │   ├── data/             # Seed catalogue (books.json)
@@ -79,9 +80,9 @@ library-mind/
 │   └── __main__.py       # `python -m app` entrypoint
 ├── scripts/              # Seeding & smoke-test scripts
 ├── tests/                # Pytest suite
-├── docs/                 # PRD, ERD, API reference, this file
+├── docs/                 # PRD, ERD, API reference, CI guide, this file
 ├── frontend/             # Placeholder for the future React client
-├── .github/workflows/    # CI definitions
+├── .github/workflows/    # CI definitions (currently disabled — see docs/CI.md)
 ├── docker-compose.yml    # Local dev stack (api + redis)
 ├── Dockerfile            # Multi-stage container build
 ├── Makefile              # Developer task runner
@@ -177,7 +178,61 @@ All caches share the same Redis backend behind a single `Cache` wrapper class. T
 
 Cache TTLs are configurable; defaults are 1 hour for RAG responses and 24 hours for embeddings. Cache keys include a short version prefix (`v1:rag:...`) so prompt edits during development can be invalidated cleanly by bumping the prefix.
 
-## 11. Observability
+## 11. Distance vs Similarity
+
+ChromaDB with `hnsw:space=cosine` returns **cosine distance**, not cosine similarity. Distance is in the range `[0, 2]` where `0` means identical vectors and `2` means diametrically opposed. The lab brief and the user-facing API contract speak in **similarity** terms (`[0, 1]`, higher = more relevant). The RAG engine performs the conversion exactly once at the boundary:
+
+```python
+similarity = max(0.0, 1.0 - distance)
+```
+
+The `RAG_RELEVANCE_THRESHOLD` setting is a **similarity** threshold (default `0.35`); results with similarity below it are discarded *after* the conversion. Sources returned in the API response carry the similarity score, never the raw distance, so the contract is consistent.
+
+This is the single most common pitfall in RAG implementations (the lab's own brief calls it out). Centralising the conversion in the RAG service eliminates the class of bugs where one code path uses distance and another uses similarity.
+
+## 12. Prompt Strategy
+
+Prompts are first-class application logic. They live in `app/prompts/` — never inline in services — for four reasons. **PR review**: a prompt change shows up as a diff in a single, named file rather than buried inside a method. **A/B testing**: swapping `RAG_SYSTEM_PROMPT` for `RAG_SYSTEM_PROMPT_V2` is one import-line change. **Cache invalidation**: prompt edits during development can be invalidated cleanly by bumping the version prefix in the cache key (`v1:rag:...` → `v2:rag:...`) rather than flushing the entire Redis namespace. **Token accounting**: keeping prompts in named constants makes their token cost auditable; a stray `f"You are {role}. {long_history}..."` buried in a function obscures what is actually being billed.
+
+Each prompt module exports a typed string constant (`RAG_SYSTEM_PROMPT: str`), a module-level docstring explaining the shaping decisions, and — where applicable — a typed list of few-shot examples (`CLASSIFICATION_EXAMPLES: list[tuple[str, dict]]`). Temperature defaults live next to the prompt that uses them (`0.1` for classification and extraction, `0.3` for RAG generation, `0.7` for the chatbot's conversational tone).
+
+The classifier and summariser prompts include explicit instructions to return JSON with no surrounding prose, and the response parser strips ```json``` markdown fences defensively. This pattern is non-optional: M3's notes and the lab brief both call out fence-wrapping as the most common reason JSON parsing fails in production.
+
+## 13. Chunking Decision
+
+Chunking is the standard solution for fitting long documents into a model's embedding token limit. **It is deliberately *not* implemented in this lab** because the catalogue's input data — book descriptions of a few sentences each — fits comfortably inside any embedding model's token window (typically 512–8192 tokens). Splitting a 200-word book description into chunks would *hurt* retrieval quality by scattering coherent meaning across multiple vectors.
+
+If the catalogue ever ingested full-text book chapters or reviews exceeding 1000 characters, the path is clear: add `langchain-text-splitters` to the dependency set, use `RecursiveCharacterTextSplitter` with `chunk_size=1000` / `chunk_overlap=200` separators (`["\n\n", "\n", ". ", " "]`), and store `(document_id, chunk_index, total_chunks)` in ChromaDB metadata so source citations can resolve back to the parent document. The vector store interface already accepts metadata dicts, so no rearchitecting is needed.
+
+## 14. Cost Management
+
+Every AI call has a price. Four mechanisms keep that price visible and bounded:
+
+**Token counting at the source.** `tiktoken` (for OpenAI-compatible models) and the providers' reported token counts feed into the usage tracker. Prompt tokens and completion tokens are recorded separately because their pricing differs by roughly 3–5×.
+
+**Per-model pricing table.** A constant in `app/infrastructure/usage_tracker.py` maps `(provider, model)` to `(input_per_1k_usd, output_per_1k_usd)`. Updating prices when vendors change them is a one-file edit.
+
+**Aggressive caching.** Embeddings and full RAG responses are cached by deterministic hash of the input. Identical questions return for free. M1 and M2 both stress that caching is the single highest-leverage cost optimisation for AI features.
+
+**Soft daily budget cap.** `BUDGET_DAILY_LIMIT_USD` (default `0.0` = disabled) sets a daily threshold. `/health` reports current daily spend; later phases log a warning when daily spend approaches the cap. The lab does not require enforcement (rejecting requests over budget), so we track and warn rather than block — this matches the lab acceptance criterion of reporting non-zero cost after an AI call, while leaving room for a future enforcement step.
+
+Model-selection guidance ships as a comment in `.env.example`: `gpt-4o-mini` and `claude-3-5-haiku-latest` are the defaults because they are roughly an order of magnitude cheaper than the flagship variants and sufficient for the lab's tasks (classification, summarisation, chat over a small catalogue).
+
+## 15. Deferred Optimisations
+
+The notes (M2 in particular) describe several optimisations beyond what the lab requires. They are deliberately deferred and documented here so a future contributor knows we considered them.
+
+**Hybrid search (BM25 + semantic).** Combining BM25 keyword scores with vector similarity scores improves precision on queries that mention proper nouns (author names, book titles). Out of scope because the lab's catalogue is small and semantic search alone meets the acceptance criteria. If added later, `rank-bm25` is the natural Python library; the merge formula is a weighted sum with `semantic_weight = 0.7`.
+
+**Cross-encoder re-ranking.** Retrieving 20 candidates with vector search and re-ranking the top 5 with a cross-encoder (e.g. `cross-encoder/ms-marco-MiniLM-L-6-v2` from `sentence-transformers`) produces noticeably better precision on harder queries. Adds latency and a model dependency; not justified for the lab.
+
+**LangChain / LlamaIndex.** Both wrap the RAG pipeline behind a high-level API. We use raw SDKs in this lab for three reasons: (1) the implementation is more explicit and therefore easier to grade, (2) the rubric tests our understanding of each pipeline stage rather than our ability to invoke a framework, (3) raw control over prompts and retrieval is needed to satisfy specific acceptance criteria (citation format, threshold behaviour). LangChain remains a sensible refactor target after the lab.
+
+**Streaming responses.** The OpenAI/Anthropic SDKs support token-level streaming, which dramatically improves perceived latency for chatbot replies. Out of scope because the lab's REST API contract returns complete JSON responses; streaming would require Server-Sent Events or WebSockets, neither of which is required by the rubric.
+
+**Function calling / tool use.** Out of scope; the lab does not require agentic behaviour.
+
+## 16. Observability
 
 Structured logging is the foundation. Every log line is JSON in production and human-readable in development. Every log line associated with a request carries a request ID (generated in middleware in Phase 7 and bound to the structlog context for the lifetime of the request). Every AI call logs `provider`, `model`, `prompt_tokens`, `completion_tokens`, `cost_usd`, and `latency_ms`. Every cache lookup logs `hit | miss`. Every rate-limit decision logs `allowed | rejected`.
 

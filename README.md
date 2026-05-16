@@ -82,7 +82,8 @@ All settings are read from environment variables (with a `.env` file as the defa
 | `REDIS_URL`               | Redis connection string                                        | `redis://localhost:6379/0`       |
 | `RATE_LIMIT_PER_MINUTE`   | Token bucket refill rate                                       | `60`                             |
 | `RAG_TOP_K`               | Top-K vectors retrieved from ChromaDB                          | `4`                              |
-| `RAG_RELEVANCE_THRESHOLD` | Drop results below this similarity score                       | `0.25`                           |
+| `RAG_RELEVANCE_THRESHOLD` | Similarity threshold (0=unrelated, 1=identical)                | `0.35`                           |
+| `BUDGET_DAILY_LIMIT_USD`  | Soft daily cost cap (`0.0` disables; tracking still happens)   | `0.0`                            |
 | `CHROMA_PERSIST_DIR`      | Local directory for ChromaDB data                              | `./data/chroma`                  |
 | `LOG_FORMAT`              | `json` for production, `console` for dev                       | `json`                           |
 
@@ -190,11 +191,19 @@ with httpx.Client(base_url="http://localhost:8000") as client:
 ```
 library-mind/
 ├── app/                  # Application package (see docs/ARCHITECTURE.md)
+│   ├── api/              #   FastAPI routers (Phase 7)
+│   ├── services/         #   Business logic (Phases 3–6)
+│   ├── providers/        #   Multi-provider AI layer (Phase 1)
+│   ├── infrastructure/   #   Cache, rate limiter, usage tracker (Phase 2)
+│   ├── prompts/          #   Versioned prompt templates (Phases 4–6)
+│   ├── schemas/          #   Pydantic models
+│   ├── core/             #   Settings, logging, exceptions  ✓ Phase 0
+│   └── data/             #   Seed catalogue (books.json)
 ├── scripts/              # Seeding & smoke tests
 ├── tests/                # Pytest suite
-├── docs/                 # PRD, ERD, API reference, architecture
+├── docs/                 # PRD, ERD, API reference, architecture, CI guide
 ├── frontend/             # Placeholder for future React client
-├── .github/workflows/    # CI
+├── .github/workflows/    # CI (currently disabled — see docs/CI.md)
 ├── docker-compose.yml    # api + redis dev stack
 ├── Dockerfile            # Multi-stage build
 ├── Makefile              # Developer task runner
@@ -224,6 +233,10 @@ We use trunk-based development with feature branches and conventional commits.
 
 **Embedding dimension mismatch** after switching embedding models — delete `./data/chroma` and re-seed. Embeddings from different models live in different vector spaces; ChromaDB will not silently coerce them.
 
+**GitHub Actions not running** — CI is currently disabled because of a GitHub billing block. The workflow file is preserved at `.github/workflows/ci.yml.disabled`. To re-enable, rename it back to `ci.yml` and push. See [`docs/CI.md`](docs/CI.md) for details. All quality gates the workflow enforces are also available locally via `make check`.
+
+**Confused by similarity scores vs distance** — ChromaDB returns cosine *distance* (lower is better), but the API returns cosine *similarity* (higher is better). The RAG engine converts internally; `RAG_RELEVANCE_THRESHOLD` is always a similarity threshold. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) § *Distance vs Similarity*.
+
 ## Development standards
 
 We aim for production-grade code throughout. The minimum bar:
@@ -247,6 +260,7 @@ The detailed engineering rulebook lives in `Guidelines.md` (git-ignored, interna
 | `docs/ERD.md`                 | Conceptual data model + storage decisions                 |
 | `docs/API_REFERENCE.md`       | Endpoint contracts, payloads, error envelopes             |
 | `docs/ARCHITECTURE.md`        | Layered design, diagrams, flows, strategy per concern     |
+| `docs/CI.md`                  | CI status (currently disabled) + re-enable instructions   |
 | `Agent.md` *(git-ignored)*    | Instructions for AI coding agents                         |
 | `Guidelines.md` *(git-ignored)* | Engineering rulebook                                    |
 | `handoff.md` *(git-ignored)*  | Phase-by-phase progress log + continuation prompt         |

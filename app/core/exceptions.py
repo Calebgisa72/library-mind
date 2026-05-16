@@ -56,8 +56,16 @@ class ProviderUnavailableError(ProviderError):
     default_message = "AI provider is temporarily unavailable."
 
 
-class AllProvidersFailedError(ProviderError):
-    """The resilient orchestrator exhausted every configured provider."""
+class AllProvidersFailedError(ProviderError, RuntimeError):
+    """The resilient orchestrator exhausted every configured provider.
+
+    Multiply-inherits from ``RuntimeError`` so it satisfies the literal
+    wording of the lab brief Part 1 acceptance criterion: *"If all
+    providers are down, a RuntimeError is raised with a helpful message."*
+    Tests that check ``isinstance(exc, RuntimeError)`` succeed; the
+    exception is still a fully-fledged member of our ``LibraryMindError``
+    tree, so the global handler maps it to HTTP 503 cleanly.
+    """
 
     default_message = "All AI providers failed. Please try again later."
 

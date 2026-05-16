@@ -64,6 +64,15 @@ dependencies = [
     # ── Tokenisation (for usage tracking) ────────────────────────────────────
     "tiktoken>=0.8,<0.9",
 
+    # ── Text splitting ───────────────────────────────────────────────────────
+    # Listed as a required supporting library in Part 0 of the lab brief.
+    # The lab's catalogue uses short book descriptions that fit a single
+    # embedding, so chunking is not actively used (see
+    # docs/ARCHITECTURE.md § Chunking Decision). The library is installed
+    # to satisfy the Part 0 requirement and to enable future ingestion of
+    # longer documents without dependency changes.
+    "langchain-text-splitters>=0.3,<0.4",
+
     # ── Observability ────────────────────────────────────────────────────────
     "structlog>=24.4,<25.0",
 
