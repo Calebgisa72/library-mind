@@ -1,0 +1,260 @@
+###############################################################################
+# LibraryMind — Project metadata & tooling configuration
+#
+# Single source of truth for: dependencies, build system, and every quality
+# tool (Ruff, Black, Mypy, Pytest, Coverage). Adding a tool? Configure it here
+# rather than scattering dotfiles across the repo.
+###############################################################################
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# -----------------------------------------------------------------------------
+# Project metadata
+# -----------------------------------------------------------------------------
+[project]
+name = "librarymind"
+version = "0.1.0"
+description = "AI-powered intelligent library assistant — multi-provider RAG backend."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Gisa Mugisha Caleb Pacifique" },
+]
+keywords = ["fastapi", "rag", "llm", "chromadb", "ai", "library"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Framework :: FastAPI",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# Runtime dependencies. Versions are upper-bounded conservatively so a future
+# breaking release of a transitive dep cannot silently break a build.
+dependencies = [
+    # ── Web framework ────────────────────────────────────────────────────────
+    "fastapi>=0.115,<0.117",
+    "uvicorn[standard]>=0.32,<0.36",
+
+    # ── Validation & settings ────────────────────────────────────────────────
+    "pydantic>=2.9,<3.0",
+    "pydantic-settings>=2.6,<3.0",
+
+    # ── AI provider SDKs ─────────────────────────────────────────────────────
+    "openai>=1.54,<2.0",
+    "anthropic>=0.39,<1.0",
+    # AmaliAI is course-provided; it exposes an OpenAI-compatible HTTP API, so
+    # we use httpx directly rather than a vendor SDK.
+    "httpx>=0.27,<0.29",
+
+    # ── Vector store & embeddings ────────────────────────────────────────────
+    "chromadb>=0.5,<0.7",
+
+    # ── Caching / Redis client ───────────────────────────────────────────────
+    "redis>=5.0,<6.0",
+
+    # ── Resilience: retries & backoff ────────────────────────────────────────
+    "tenacity>=9.0,<10.0",
+
+    # ── Tokenisation (for usage tracking) ────────────────────────────────────
+    "tiktoken>=0.8,<0.9",
+
+    # ── Text splitting ───────────────────────────────────────────────────────
+    # Listed as a required supporting library in Part 0 of the lab brief.
+    # The lab's catalogue uses short book descriptions that fit a single
+    # embedding, so chunking is not actively used (see
+    # docs/ARCHITECTURE.md § Chunking Decision). The library is installed
+    # to satisfy the Part 0 requirement and to enable future ingestion of
+    # longer documents without dependency changes.
+    "langchain-text-splitters>=0.3,<0.4",
+
+    # ── Observability ────────────────────────────────────────────────────────
+    "structlog>=24.4,<25.0",
+
+    # ── Misc utilities ───────────────────────────────────────────────────────
+    "python-multipart>=0.0.12,<0.1",   # FastAPI form parsing
+    "orjson>=3.10,<4.0",                # Fast JSON for FastAPI responses
+]
+
+# -----------------------------------------------------------------------------
+# Optional dependency groups
+# -----------------------------------------------------------------------------
+[project.optional-dependencies]
+dev = [
+    # Linting & formatting
+    "ruff>=0.7,<0.13",
+    "black>=24.10,<26.0",
+
+    # Type checking
+    "mypy>=1.13,<2.0",
+    "types-redis>=4.6,<5.0",
+
+    # Testing
+    "pytest>=8.3,<9.0",
+    "pytest-asyncio>=0.24,<1.0",
+    "pytest-cov>=6.0,<7.0",
+    "httpx>=0.27,<0.29",   # ASGI test client
+
+    # Pre-commit
+    "pre-commit>=4.0,<5.0",
+]
+
+[project.urls]
+Repository = "https://github.com/calebgisa/library-mind"
+
+# -----------------------------------------------------------------------------
+# Setuptools: discover the `app` package automatically
+# -----------------------------------------------------------------------------
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["tests*", "docs*", "frontend*", "scripts*"]
+
+###############################################################################
+# Ruff — fast linter + import sorter
+###############################################################################
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "frontend",
+    "data/chroma",
+]
+
+[tool.ruff.lint]
+# A pragmatic, opinionated selection. Add rules as the codebase matures.
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "SIM",  # flake8-simplify
+    "RUF",  # Ruff-specific
+    "N",    # pep8-naming
+    "S",    # bandit (security)
+    "T20",  # flake8-print (no stray print() in app code)
+    "TID",  # tidy imports
+    "PT",   # pytest style
+    "PL",   # pylint
+    "ASYNC",
+]
+ignore = [
+    "E501",      # line length is handled by Black
+    "PLR0913",   # allow more than 5 args (FastAPI deps make this common)
+    "PLR2004",   # magic numbers (we use them for HTTP status, etc.)
+    "S101",      # assert used (fine in tests)
+    "B008",      # function-call-in-default-argument (FastAPI's Depends pattern)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "PL", "T20"]
+"scripts/*" = ["T20"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+combine-as-imports = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+###############################################################################
+# Black — formatter (we let Ruff handle imports; Black handles the rest)
+###############################################################################
+[tool.black]
+line-length = 100
+target-version = ["py311", "py312"]
+extend-exclude = '''
+/(
+  \.venv
+  | venv
+  | build
+  | dist
+  | frontend
+  | data/chroma
+)/
+'''
+
+###############################################################################
+# Mypy — static type checking
+###############################################################################
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unreachable = true
+warn_unused_ignores = true
+disallow_untyped_decorators = false   # FastAPI decorators are dynamic
+plugins = ["pydantic.mypy"]
+exclude = ["build/", "dist/", "frontend/", "data/"]
+
+# Third-party libs without type stubs — relax so the build doesn't break.
+[[tool.mypy.overrides]]
+module = [
+    "chromadb",
+    "chromadb.*",
+    "tiktoken",
+    "tiktoken.*",
+]
+ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+###############################################################################
+# Pytest
+###############################################################################
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=app",
+    "--cov-report=term-missing",
+    "--cov-report=xml",
+]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "integration: tests that hit external services (skipped in CI by default)",
+    "slow: tests that take >1s",
+]
+
+###############################################################################
+# Coverage
+###############################################################################
+[tool.coverage.run]
+branch = true
+source = ["app"]
+omit = [
+    "app/__main__.py",
+    "tests/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+skip_covered = false
+fail_under = 0    # raised in later phases as tests are added

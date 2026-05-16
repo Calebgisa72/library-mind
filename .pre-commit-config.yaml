@@ -1,0 +1,65 @@
+# =============================================================================
+# Pre-commit hooks for LibraryMind
+#
+# Install: pre-commit install
+# Run on all files: pre-commit run --all-files
+# =============================================================================
+
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+fail_fast: false
+
+repos:
+  # ── Generic hygiene ────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: \.md$
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+
+  # ── Ruff — lint + import sort + format ─────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.4
+    hooks:
+      - id: ruff
+        args: ["--fix", "--exit-non-zero-on-fix"]
+      - id: ruff-format
+
+  # ── Black — final formatting pass ──────────────────────────────────────────
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+
+  # ── Mypy — static type checking ────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - pydantic>=2.9
+          - pydantic-settings>=2.6
+          - types-redis
+        args: ["--config-file=pyproject.toml"]
+        # The app/ package may not exist yet in Phase 0; mypy will run from
+        # Phase 1 onwards once business modules land.
+        files: ^app/
+
+  # ── Conventional commits (commit message style) ────────────────────────────
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args:
+          - "--types=feat,fix,docs,style,refactor,perf,test,build,ci,chore,revert"
