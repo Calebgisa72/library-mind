@@ -12,10 +12,7 @@ The system is built around a strict four-layer architecture (API → Service →
 - [Project status](#project-status)
 - [Quick start](#quick-start)
 - [Configuration](#configuration)
-- [Local development](#local-development)
-- [Docker](#docker)
-- [Testing](#testing)
-- [Linting & formatting](#linting--formatting)
+- [Commands](#commands)
 - [API at a glance](#api-at-a-glance)
 - [Sample requests](#sample-requests)
 - [Project structure](#project-structure)
@@ -59,12 +56,23 @@ The project is delivered in phases. Each phase is gated on review before the nex
 ## Quick start
 
 ```bash
+# 1. Clone the repository and enter it
 git clone https://github.com/calebgisa/library-mind.git
 cd library-mind
+
+# 2. Copy the environment template and add at least one provider API key
 cp .env.example .env
-# Open .env and add at least one provider API key.
-make install-dev
-make run
+# (Windows PowerShell: Copy-Item .env.example .env)
+
+# 3. Create the virtual environment, install dependencies, and install pre-commit hooks
+python -m venv .venv
+# Activate the venv (see the Commands section below for the exact line for your shell)
+python -m pip install --upgrade pip setuptools wheel
+pip install -e ".[dev]"
+pre-commit install --install-hooks
+
+# 4. Run the API
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 The API will be running on `http://localhost:8000`. Swagger UI is at `/docs`, ReDoc at `/redoc`.
@@ -89,44 +97,119 @@ All settings are read from environment variables (with a `.env` file as the defa
 
 At least one of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `AMALIAI_API_KEY` must be set — the application refuses to start otherwise.
 
-## Local development
+## Commands
+
+LibraryMind has no task runner — we use raw, cross-platform commands so the workflow is identical whether you're on Linux, macOS, or Windows. Every command below assumes you've **activated the virtual environment** first (see *Activate the virtual environment* immediately below). Once activated, your shell prompt should show `(.venv)`.
+
+### Activate the virtual environment
+
+The activation line is the only command that differs by platform. Run it once per terminal session.
+
+**Linux / macOS (bash, zsh):**
 
 ```bash
-make install-dev        # create .venv/, install all deps, install pre-commit hooks
-make run                # uvicorn with auto-reload
-make seed               # seed the vector store from app/data/books.json  (Phase 3+)
+source .venv/bin/activate
 ```
 
-## Docker
+**Windows (PowerShell):**
 
-```bash
-make docker-up          # build images, start api + redis
-make docker-logs        # tail logs
-make docker-down        # stop and remove volumes
+```powershell
+.\.venv\Scripts\Activate.ps1
 ```
 
-The compose file mounts the source tree read-only so uvicorn's `--reload` picks up changes without rebuilding the image.
+**Windows (cmd):**
 
-## Testing
-
-```bash
-make test               # full suite with coverage
-make test-fast          # stop on first failure
-make cov                # generate HTML coverage report
+```cmd
+.venv\Scripts\activate.bat
 ```
 
-The test suite ships empty in Phase 0 (configuration is verified by `make check` instead). Tests land in Phase 8.
+If PowerShell rejects the script with an *"execution of scripts is disabled"* error, run this **once** per machine and retry:
 
-## Linting & formatting
-
-```bash
-make lint               # Ruff with auto-fix
-make format             # Ruff format + Black
-make typecheck          # Mypy
-make check              # all of the above in CI-style read-only mode
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-Pre-commit hooks run the same checks on every commit. Run `pre-commit run --all-files` to apply them to the whole tree.
+To leave the virtual environment, run `deactivate` from any shell. Everything below assumes you stay inside the activated venv.
+
+### One-time setup
+
+| Command                                                | What it does                                                                  |
+|--------------------------------------------------------|-------------------------------------------------------------------------------|
+| `python -m venv .venv`                                 | Creates the project's virtual environment under `./.venv/`.                   |
+| `python -m pip install --upgrade pip setuptools wheel` | Upgrades base packaging tools inside the venv.                                |
+| `pip install -e ".[dev]"`                              | Installs LibraryMind in editable mode plus all development dependencies (Ruff, Black, Mypy, Pytest, pre-commit, etc.). |
+| `pre-commit install --install-hooks`                   | Wires the pre-commit hooks into `.git/hooks/` so every commit is auto-checked.|
+
+### Running the application
+
+| Command                                                                            | What it does                                                                  |
+|------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| `uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`                         | Starts the FastAPI server with auto-reload. Swagger UI at `/docs`, ReDoc at `/redoc`. |
+| `python -m app`                                                                    | Alternative entrypoint (uses the same uvicorn invocation under the hood).     |
+
+### Quality gates — read-only mode (run before every PR)
+
+| Command                                  | What it does                                                                 |
+|------------------------------------------|------------------------------------------------------------------------------|
+| `ruff check app scripts tests`           | Lint — style, imports, security smells, common bugs. Fails CI on any issue.  |
+| `black --check app scripts tests`        | Verifies code is already formatted. Fails CI if not. No auto-fix.            |
+| `mypy app`                               | Strict static type checking on the application package.                      |
+| `pre-commit run --all-files`             | Runs every configured pre-commit hook against the whole tree.                |
+
+### Quality gates — auto-fix mode (run while developing)
+
+| Command                                  | What it does                                                                 |
+|------------------------------------------|------------------------------------------------------------------------------|
+| `ruff check --fix app scripts tests`     | Lint with auto-fix; fixes import order, simple style issues, etc.            |
+| `ruff format app scripts tests`          | Formats the codebase via Ruff's formatter.                                   |
+| `black app scripts tests`                | Formats via Black (final pass — Black is the source of truth for layout).    |
+
+### Testing
+
+| Command                                          | What it does                                                                |
+|--------------------------------------------------|-----------------------------------------------------------------------------|
+| `pytest`                                         | Runs the full test suite with coverage (configured in `pyproject.toml`).    |
+| `pytest -x`                                      | Stops at the first failure — useful when iterating on a single bug.         |
+| `pytest -k <pattern>`                            | Runs only tests whose name matches the pattern (e.g. `pytest -k rag`).      |
+| `pytest tests/providers/`                        | Runs only the provider tests (replace with any path).                       |
+| `pytest --cov-report=html`                       | Generates an HTML coverage report; open `htmlcov/index.html` in a browser.  |
+
+The test suite is empty in Phase 0; it grows phase by phase and is consolidated in Phase 8.
+
+### Phase-specific commands
+
+| Command                                          | When you need it                                                            |
+|--------------------------------------------------|-----------------------------------------------------------------------------|
+| `python -m scripts.seed_vector_store`            | Phase 3+: reads `app/data/books.json`, embeds each book, upserts into ChromaDB. |
+| `python -m scripts.smoke_test`                   | Phase 8: end-to-end smoke test against a running server (10 lab scenarios). |
+
+### Docker
+
+Docker Desktop on Windows and Docker Engine on Linux/macOS both ship the `docker` and `docker compose` commands natively — these commands are platform-identical and **do not** require the venv.
+
+| Command                              | What it does                                                                        |
+|--------------------------------------|-------------------------------------------------------------------------------------|
+| `docker compose up --build -d`       | Builds the API image and starts both services (`api` + `redis`) in the background.  |
+| `docker compose ps`                  | Shows the status of both services.                                                  |
+| `docker compose logs -f`             | Tails the combined logs of both services until you press Ctrl-C.                    |
+| `docker compose logs -f api`         | Tails only the API service logs.                                                    |
+| `docker compose down`                | Stops both services but keeps their volumes (ChromaDB data persists).               |
+| `docker compose down -v`             | Stops both services **and removes volumes** — ChromaDB and Redis are wiped clean.   |
+| `docker compose build --no-cache`    | Rebuilds the API image from scratch (use after dependency or Dockerfile changes).   |
+
+The compose file mounts the source tree read-only so uvicorn's `--reload` picks up code changes without rebuilding the image.
+
+### Housekeeping
+
+| Command (Linux / macOS)                                                  | What it does                                |
+|--------------------------------------------------------------------------|---------------------------------------------|
+| `rm -rf .mypy_cache .ruff_cache .pytest_cache htmlcov .coverage`         | Removes tool caches.                        |
+| `find . -type d -name __pycache__ -exec rm -rf {} +`                     | Removes Python bytecode caches.             |
+
+| Command (Windows PowerShell)                                                          | What it does                     |
+|---------------------------------------------------------------------------------------|----------------------------------|
+| `Remove-Item -Recurse -Force .mypy_cache, .ruff_cache, .pytest_cache, htmlcov, .coverage -ErrorAction SilentlyContinue` | Removes tool caches.             |
+| `Get-ChildItem -Recurse -Directory -Filter __pycache__ \| Remove-Item -Recurse -Force` | Removes Python bytecode caches.  |
 
 ## API at a glance
 
@@ -206,7 +289,6 @@ library-mind/
 ├── .github/workflows/    # CI (currently disabled — see docs/CI.md)
 ├── docker-compose.yml    # api + redis dev stack
 ├── Dockerfile            # Multi-stage build
-├── Makefile              # Developer task runner
 ├── pyproject.toml        # Deps, lint, type, test config
 ├── .env.example          # Documented configuration template
 └── README.md             # You are here
@@ -233,7 +315,7 @@ We use trunk-based development with feature branches and conventional commits.
 
 **Embedding dimension mismatch** after switching embedding models — delete `./data/chroma` and re-seed. Embeddings from different models live in different vector spaces; ChromaDB will not silently coerce them.
 
-**GitHub Actions not running** — CI is currently disabled because of a GitHub billing block. The workflow file is preserved at `.github/workflows/ci.yml.disabled`. To re-enable, rename it back to `ci.yml` and push. See [`docs/CI.md`](docs/CI.md) for details. All quality gates the workflow enforces are also available locally via `make check`.
+**GitHub Actions not running** — CI is currently disabled because of a GitHub billing block. The workflow file is preserved at `.github/workflows/ci.yml.disabled`. To re-enable, rename it back to `ci.yml` and push. See [`docs/CI.md`](docs/CI.md) for details. All quality gates the workflow enforces are also available locally — see the [`Commands`](#commands) section.
 
 **Confused by similarity scores vs distance** — ChromaDB returns cosine *distance* (lower is better), but the API returns cosine *similarity* (higher is better). The RAG engine converts internally; `RAG_RELEVANCE_THRESHOLD` is always a similarity threshold. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) § *Distance vs Similarity*.
 
