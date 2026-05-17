@@ -24,7 +24,9 @@ def _make_anthropic_rate_limit_error() -> anthropic.RateLimitError:
     )
 
 
-def _make_anthropic_message(text: str = "hello", input_tokens: int = 8, output_tokens: int = 4) -> MagicMock:
+def _make_anthropic_message(
+    text: str = "hello", input_tokens: int = 8, output_tokens: int = 4
+) -> MagicMock:
     """Return a mock anthropic.Message with the standard shape."""
     usage = MagicMock()
     usage.input_tokens = input_tokens
@@ -39,7 +41,7 @@ def _make_anthropic_message(text: str = "hello", input_tokens: int = 8, output_t
     return message
 
 
-@pytest.fixture()
+@pytest.fixture
 def provider() -> AnthropicProvider:
     return AnthropicProvider(api_key="sk-ant-test", model="claude-3-5-haiku-latest")
 
@@ -123,9 +125,9 @@ class TestAnthropicProviderGenerate:
         with (
             patch.object(provider._client.messages, "create", new=always_fail),
             patch("asyncio.sleep", new=AsyncMock()),
+            pytest.raises(ProviderUnavailableError),
         ):
-            with pytest.raises(ProviderUnavailableError):
-                await provider.generate("hi")
+            await provider.generate("hi")
 
     async def test_provider_name_and_model(self, provider: AnthropicProvider) -> None:
         assert provider.name == "anthropic"
@@ -140,9 +142,7 @@ class TestAnthropicProviderEmbed:
 
     async def test_embed_does_not_call_anthropic_api(self, provider: AnthropicProvider) -> None:
         """The error must be raised before any API call is made."""
-        with patch.object(
-            provider._client.messages, "create", new=AsyncMock()
-        ) as mock_create:
+        with patch.object(provider._client.messages, "create", new=AsyncMock()) as mock_create:
             with pytest.raises(ProviderUnavailableError):
                 await provider.embed("text")
             mock_create.assert_not_called()

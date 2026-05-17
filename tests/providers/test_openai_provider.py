@@ -20,7 +20,9 @@ def _make_openai_rate_limit_error() -> openai.RateLimitError:
     return openai.RateLimitError("Rate limit exceeded", response=mock_response, body=None)
 
 
-def _make_openai_completion(text: str = "hello", prompt_tokens: int = 10, completion_tokens: int = 5) -> MagicMock:
+def _make_openai_completion(
+    text: str = "hello", prompt_tokens: int = 10, completion_tokens: int = 5
+) -> MagicMock:
     """Return a mock chat completion response with the standard OpenAI shape."""
     usage = MagicMock()
     usage.prompt_tokens = prompt_tokens
@@ -38,7 +40,7 @@ def _make_openai_completion(text: str = "hello", prompt_tokens: int = 10, comple
     return completion
 
 
-@pytest.fixture()
+@pytest.fixture
 def provider() -> OpenAIProvider:
     return OpenAIProvider(
         api_key="sk-test",
@@ -57,7 +59,7 @@ class TestOpenAIProviderGenerate:
             "create",
             new=AsyncMock(return_value=mock_response),
         ):
-            result = await provider.generate("What is 6 × 7?")
+            result = await provider.generate("What is 6 x 7?")
 
         assert isinstance(result, GenerationResult)
         assert result.text == "The answer is 42."
@@ -114,9 +116,9 @@ class TestOpenAIProviderGenerate:
         with (
             patch.object(provider._client.chat.completions, "create", new=always_fail),
             patch("asyncio.sleep", new=AsyncMock()),
+            pytest.raises(ProviderUnavailableError),
         ):
-            with pytest.raises(ProviderUnavailableError):
-                await provider.generate("hi")
+            await provider.generate("hi")
 
     async def test_auth_error_raises_provider_unavailable_immediately(
         self, provider: OpenAIProvider
@@ -133,9 +135,11 @@ class TestOpenAIProviderGenerate:
             call_count += 1
             raise auth_error
 
-        with patch.object(provider._client.chat.completions, "create", new=bad_auth):
-            with pytest.raises(ProviderUnavailableError):
-                await provider.generate("hi")
+        with (
+            patch.object(provider._client.chat.completions, "create", new=bad_auth),
+            pytest.raises(ProviderUnavailableError),
+        ):
+            await provider.generate("hi")
 
         # Auth errors are not retried — must be called exactly once.
         assert call_count == 1

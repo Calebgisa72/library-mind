@@ -92,7 +92,7 @@ class AnthropicProvider:
         except anthropic.AnthropicError as exc:
             raise ProviderUnavailableError(f"Anthropic call failed: {exc}") from exc
 
-    async def embed(self, text: str | list[str]) -> list[list[float]]:  # noqa: ARG002
+    async def embed(self, text: str | list[str]) -> list[list[float]]:
         """Not supported — Anthropic has no embeddings API.
 
         Raises ``ProviderUnavailableError`` immediately so the resilient service
@@ -136,7 +136,7 @@ class AnthropicProvider:
         if system:
             kwargs["system"] = system
 
-        response = await self._client.messages.create(**kwargs)  # type: ignore[arg-type]
+        response = await self._client.messages.create(**kwargs)  # type: ignore[call-overload]
 
         text = response.content[0].text if response.content else ""
         usage = response.usage

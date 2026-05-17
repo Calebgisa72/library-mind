@@ -2,19 +2,17 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
-import pytest
-from redis.exceptions import ConnectionError as RedisConnectionError
-from redis.exceptions import RedisError
+from redis.exceptions import ConnectionError as RedisConnectionError, RedisError
 
 from app.infrastructure.cache import Cache
 from app.infrastructure.keys import make_key
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_settings(ttl: int = 3600, enabled: bool = True) -> MagicMock:
     s = MagicMock()
@@ -38,6 +36,7 @@ def _make_cache(*, ttl: int = 3600, redis_client: MagicMock | None = None) -> Ca
 # get()
 # ---------------------------------------------------------------------------
 
+
 class TestCacheGet:
     async def test_returns_none_on_cache_miss(self) -> None:
         cache = _make_cache()
@@ -46,6 +45,7 @@ class TestCacheGet:
 
     async def test_returns_deserialised_value_on_hit(self) -> None:
         import orjson
+
         cache = _make_cache()
         payload = {"answer": "hello", "score": 0.9}
         cache._client.get = AsyncMock(return_value=orjson.dumps(payload))
@@ -62,12 +62,13 @@ class TestCacheGet:
 
     async def test_redis_error_logged_as_warning(self) -> None:
         import structlog.testing
+
         cache = _make_cache()
         cache._client.get = AsyncMock(side_effect=RedisError("boom"))
         with structlog.testing.capture_logs() as logs:
             await cache.get("k")
-        warnings = [l for l in logs if l.get("log_level") == "warning"]
-        assert any("cache.get.error" in str(l) for l in warnings)
+        warnings = [entry for entry in logs if entry.get("log_level") == "warning"]
+        assert any("cache.get.error" in str(entry) for entry in warnings)
 
     async def test_returns_none_when_client_is_none(self) -> None:
         """When cache is disabled, get() always returns None."""
@@ -78,6 +79,7 @@ class TestCacheGet:
 # ---------------------------------------------------------------------------
 # set()
 # ---------------------------------------------------------------------------
+
 
 class TestCacheSet:
     async def test_stores_value_with_default_ttl(self) -> None:
@@ -110,12 +112,13 @@ class TestCacheSet:
 
     async def test_redis_error_logged_as_warning(self) -> None:
         import structlog.testing
+
         cache = _make_cache()
         cache._client.set = AsyncMock(side_effect=RedisError("disk full"))
         with structlog.testing.capture_logs() as logs:
             await cache.set("k", "v")
-        warnings = [l for l in logs if l.get("log_level") == "warning"]
-        assert any("cache.set.error" in str(l) for l in warnings)
+        warnings = [entry for entry in logs if entry.get("log_level") == "warning"]
+        assert any("cache.set.error" in str(entry) for entry in warnings)
 
     async def test_no_op_when_client_is_none(self) -> None:
         cache = Cache(settings=_make_settings(enabled=False))
@@ -125,6 +128,7 @@ class TestCacheSet:
 # ---------------------------------------------------------------------------
 # delete()
 # ---------------------------------------------------------------------------
+
 
 class TestCacheDelete:
     async def test_calls_redis_delete(self) -> None:
@@ -141,6 +145,7 @@ class TestCacheDelete:
 # ---------------------------------------------------------------------------
 # ping()
 # ---------------------------------------------------------------------------
+
 
 class TestCachePing:
     async def test_returns_true_when_redis_responds(self) -> None:
@@ -161,6 +166,7 @@ class TestCachePing:
 # ---------------------------------------------------------------------------
 # make_key()
 # ---------------------------------------------------------------------------
+
 
 class TestCacheMakeKey:
     def test_delegates_to_keys_module(self) -> None:

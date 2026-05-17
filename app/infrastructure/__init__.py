@@ -14,21 +14,25 @@ Phase 2 public surface:
   per-call usage snapshot.
 * :data:`~app.infrastructure.usage_tracker.PRICING` -- model price table.
 
-Phase 3 will add:
+Phase 3 public surface:
 
 * :class:`~app.infrastructure.vector_store.VectorStore` -- ChromaDB wrapper.
+* :class:`~app.infrastructure.vector_store.SearchResult` -- typed search result.
 """
 
 from app.infrastructure.cache import Cache
 from app.infrastructure.keys import make_key
 from app.infrastructure.rate_limiter import TokenBucketRateLimiter
 from app.infrastructure.usage_tracker import PRICING, UsageRecord, UsageTracker
+from app.infrastructure.vector_store import SearchResult, VectorStore
 
 __all__ = [
-    "Cache",
     "PRICING",
+    "Cache",
+    "SearchResult",
     "TokenBucketRateLimiter",
     "UsageRecord",
     "UsageTracker",
+    "VectorStore",
     "make_key",
 ]

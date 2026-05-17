@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+import dataclasses
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from app.infrastructure.usage_tracker import PRICING, UsageRecord, UsageTracker
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _record(
     tracker: UsageTracker,
@@ -35,10 +36,11 @@ def _record(
 # UsageRecord (dataclass sanity)
 # ---------------------------------------------------------------------------
 
+
 class TestUsageRecord:
     def test_is_frozen_dataclass(self) -> None:
         rec = UsageRecord(
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
             provider="openai",
             model="gpt-4o-mini",
             operation="generate",
@@ -46,13 +48,14 @@ class TestUsageRecord:
             completion_tokens=5,
             cost_usd=0.0,
         )
-        with pytest.raises(Exception):   # FrozenInstanceError
+        with pytest.raises(dataclasses.FrozenInstanceError):
             rec.prompt_tokens = 99  # type: ignore[misc]
 
 
 # ---------------------------------------------------------------------------
 # UsageTracker.record()
 # ---------------------------------------------------------------------------
+
 
 class TestUsageTrackerRecord:
     def test_record_returns_usage_record(self) -> None:
@@ -98,7 +101,7 @@ class TestUsageTrackerRecord:
         tracker = UsageTracker()
         rec = _record(tracker)
         assert rec.timestamp.tzinfo is not None
-        assert rec.timestamp.tzinfo == timezone.utc
+        assert rec.timestamp.tzinfo == UTC
 
     def test_record_preserves_all_fields(self) -> None:
         tracker = UsageTracker()
@@ -145,14 +148,15 @@ class TestUsageTrackerRecord:
 # UsageTracker.daily_cost_usd()
 # ---------------------------------------------------------------------------
 
+
 class TestDailyCostUsd:
     def test_returns_zero_with_no_records(self) -> None:
         assert UsageTracker().daily_cost_usd() == 0.0
 
     def test_sums_all_records_for_today(self) -> None:
         tracker = UsageTracker()
-        _record(tracker, prompt_tokens=100, completion_tokens=50)   # 0.000045
-        _record(tracker, prompt_tokens=100, completion_tokens=50)   # 0.000045
+        _record(tracker, prompt_tokens=100, completion_tokens=50)  # 0.000045
+        _record(tracker, prompt_tokens=100, completion_tokens=50)  # 0.000045
         cost = tracker.daily_cost_usd()
         assert abs(cost - 0.000090) < 1e-10
 
@@ -165,7 +169,7 @@ class TestDailyCostUsd:
     def test_filters_by_specific_day(self) -> None:
         tracker = UsageTracker()
         # Inject a record for yesterday by mutating after creation
-        yesterday = datetime.now(tz=timezone.utc) - timedelta(days=1)
+        yesterday = datetime.now(tz=UTC) - timedelta(days=1)
         old_rec = UsageRecord(
             timestamp=yesterday,
             provider="openai",
@@ -176,15 +180,15 @@ class TestDailyCostUsd:
             cost_usd=0.000045,
         )
         tracker._records.append(old_rec)
-        _record(tracker)   # today's record
+        _record(tracker)  # today's record
 
-        today = datetime.now(tz=timezone.utc).date()
+        today = datetime.now(tz=UTC).date()
         assert abs(tracker.daily_cost_usd(day=today) - 0.000045) < 1e-10
         assert tracker.daily_cost_usd(day=yesterday.date()) == 0.000045
 
     def test_excludes_other_days(self) -> None:
         tracker = UsageTracker()
-        future = datetime.now(tz=timezone.utc) + timedelta(days=5)
+        future = datetime.now(tz=UTC) + timedelta(days=5)
         future_rec = UsageRecord(
             timestamp=future,
             provider="openai",
@@ -203,6 +207,7 @@ class TestDailyCostUsd:
 # UsageTracker.total_requests_today()
 # ---------------------------------------------------------------------------
 
+
 class TestTotalRequestsToday:
     def test_zero_with_no_records(self) -> None:
         assert UsageTracker().total_requests_today() == 0
@@ -216,7 +221,7 @@ class TestTotalRequestsToday:
 
     def test_excludes_yesterday(self) -> None:
         tracker = UsageTracker()
-        yesterday = datetime.now(tz=timezone.utc) - timedelta(days=1)
+        yesterday = datetime.now(tz=UTC) - timedelta(days=1)
         old_rec = UsageRecord(
             timestamp=yesterday,
             provider="openai",
@@ -234,6 +239,7 @@ class TestTotalRequestsToday:
 # ---------------------------------------------------------------------------
 # PRICING table sanity
 # ---------------------------------------------------------------------------
+
 
 class TestPricingTable:
     def test_gpt4o_mini_entry_exists(self) -> None:

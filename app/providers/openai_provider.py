@@ -94,14 +94,10 @@ class OpenAIProvider:
         except _TRANSIENT as exc:
             # Retries exhausted — convert to our domain exception so the
             # ResilientAIService can fall through to the next provider.
-            raise ProviderUnavailableError(
-                f"OpenAI transient error after retries: {exc}"
-            ) from exc
+            raise ProviderUnavailableError(f"OpenAI transient error after retries: {exc}") from exc
         except openai.OpenAIError as exc:
             # Non-transient SDK error (auth, invalid request, etc.).
-            raise ProviderUnavailableError(
-                f"OpenAI call failed: {exc}"
-            ) from exc
+            raise ProviderUnavailableError(f"OpenAI call failed: {exc}") from exc
 
     async def embed(self, text: str | list[str]) -> list[list[float]]:
         """Generate embeddings via the OpenAI embeddings API.
@@ -116,9 +112,7 @@ class OpenAIProvider:
                 f"OpenAI embedding transient error after retries: {exc}"
             ) from exc
         except openai.OpenAIError as exc:
-            raise ProviderUnavailableError(
-                f"OpenAI embedding call failed: {exc}"
-            ) from exc
+            raise ProviderUnavailableError(f"OpenAI embedding call failed: {exc}") from exc
 
     # ------------------------------------------------------------------
     # Private retry-decorated helpers

@@ -64,7 +64,7 @@ def build_provider_retry(
     retry_condition:
         Override the retry_if_exception_type condition.
     """
-    return retry(  # type: ignore[return-value]
+    return retry(
         stop=stop or stop_after_attempt(3),
         wait=wait or wait_exponential(multiplier=1, min=2, max=30),
         retry=retry_condition or retry_if_exception_type(transient_errors),

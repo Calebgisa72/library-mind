@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import dataclasses
+
 import pytest
 
 from app.providers.base import GenerationResult
@@ -17,7 +19,7 @@ class TestGenerationResult:
             prompt_tokens=10,
             completion_tokens=5,
         )
-        with pytest.raises(Exception):  # frozen dataclass raises FrozenInstanceError
+        with pytest.raises(dataclasses.FrozenInstanceError):
             result.text = "mutated"  # type: ignore[misc]
 
     def test_fields_accessible(self) -> None:

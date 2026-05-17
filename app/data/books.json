@@ -1,1 +1,178 @@
-[]
+[
+  {
+    "id": "book-001",
+    "title": "Dune",
+    "author": "Frank Herbert",
+    "year": 1965,
+    "genre": "Science Fiction",
+    "description": "Set on the arid desert planet Arrakis, the only source of the universe's most precious substance — the spice melange — Dune follows young Paul Atreides as his noble family is thrust into a deadly political struggle for control of the planet. Paul must navigate treacherous alliances, survive the brutal desert environment, and lead the native Fremen people in a revolution against imperial oppression. The novel weaves together themes of ecology, religion, politics, and human evolution into an epic space opera unlike any other. Vast sandworms patrol the dunes, and water is so scarce that suits are worn to recycle every drop of moisture from the body. It remains the best-selling science fiction novel of all time and a cornerstone of the genre."
+  },
+  {
+    "id": "book-002",
+    "title": "Foundation",
+    "author": "Isaac Asimov",
+    "year": 1951,
+    "genre": "Science Fiction",
+    "description": "Hari Seldon, a mathematician, has developed psychohistory — a science capable of predicting the fall of the Galactic Empire and the subsequent dark age that will engulf humanity for thirty thousand years. To shorten the dark age to a single millennium, Seldon establishes the Foundation on a remote planet at the edge of the galaxy, a repository of all human knowledge. The novel spans centuries, following successive generations as the Foundation navigates crises that Seldon foresaw, using science and cunning to survive against overwhelming political and military forces. Asimov's grand vision of civilisation, history, and the mathematics of human behaviour makes this one of science fiction's defining works. The series explores whether free will can exist within a universe governed by statistical inevitability."
+  },
+  {
+    "id": "book-003",
+    "title": "The Martian",
+    "author": "Andy Weir",
+    "year": 2011,
+    "genre": "Science Fiction",
+    "description": "When a violent Martian storm forces his crew to abort their mission, astronaut Mark Watney is left stranded and alone on the surface of Mars, presumed dead. With limited supplies and no way to contact Earth, Watney must use his training as a botanist and mechanical engineer to grow food in the barren Martian soil and survive long enough to be rescued. The novel is a gripping survival story told through Watney's wry, problem-solving journal entries that balance harrowing tension with genuine humour. Back on Earth, NASA races to mount a rescue mission across the vast distance of space before his supplies run out. The Martian celebrates human ingenuity and the stubborn refusal to give up in the face of impossible odds."
+  },
+  {
+    "id": "book-004",
+    "title": "Ender's Game",
+    "author": "Orson Scott Card",
+    "year": 1985,
+    "genre": "Science Fiction",
+    "description": "In the near future, humanity is preparing for a third invasion by an alien insectoid species called the Formics. Six-year-old Andrew 'Ender' Wiggin, identified as a potential military genius, is recruited to a space battle school where children are trained through increasingly complex war games to become Earth's commanders. Ender proves extraordinarily gifted, advancing rapidly while suffering the psychological toll of isolation, bullying, and relentless pressure from his manipulative trainers. The novel explores themes of empathy, moral responsibility, and the ethics of war through the eyes of a child pushed to his limits. Its shocking climax forces readers to reconsider the entire story and the nature of violence committed in the name of survival."
+  },
+  {
+    "id": "book-005",
+    "title": "The Left Hand of Darkness",
+    "author": "Ursula K. Le Guin",
+    "year": 1969,
+    "genre": "Science Fiction",
+    "description": "Genly Ai is a human envoy sent to the cold, icebound planet Gethen to persuade its nations to join an interplanetary league. The planet's inhabitants are biologically unique: they have no fixed gender, cycling through male and female phases only during their monthly fertility period. Through Genly's growing friendship with the disgraced Gethenian politician Estraven, Le Guin examines how deeply gender shapes perception, politics, and human connection. The two must undertake a gruelling winter journey across a frozen glacier that tests both their physical endurance and their capacity for trust across profound cultural difference. The novel is a landmark in speculative fiction, celebrated for its exploration of gender, identity, and the courage required to truly understand another being."
+  },
+  {
+    "id": "book-006",
+    "title": "Pride and Prejudice",
+    "author": "Jane Austen",
+    "year": 1813,
+    "genre": "Classic",
+    "description": "Set in the English countryside at the turn of the nineteenth century, Pride and Prejudice follows the five Bennet sisters as their mother schemes to marry them off to wealthy suitors. The witty and independent Elizabeth Bennet sparks with the proud and wealthy Mr. Fitzwilliam Darcy in a romance shaped by misunderstanding, social class, and the rigid conventions of Regency England. Through Elizabeth's sharp observations and spirited conversation, Austen delivers a devastating satire of the marriage market and the limited options available to women of modest means. The novel's exploration of how pride and prejudice cloud judgement remains startlingly fresh, and the central love story between Elizabeth and Darcy is one of the most celebrated in all of English literature. Country balls, country houses, and cutting drawing-room dialogue bring Georgian England vividly to life."
+  },
+  {
+    "id": "book-007",
+    "title": "Sense and Sensibility",
+    "author": "Jane Austen",
+    "year": 1811,
+    "genre": "Classic",
+    "description": "When their father dies and leaves the family estate to a half-brother, the Dashwood sisters — sensible Elinor and passionately romantic Marianne — must move to a modest cottage in rural Devonshire and navigate the English marriage market with diminished prospects. Elinor suppresses her feelings for the reserved Edward Ferrars while watching Marianne throw herself headlong into an infatuation with the dashing John Willoughby. Austen contrasts the virtues and dangers of reason against emotion, showing how both excess restraint and excess feeling can lead to heartbreak. The novel is set against the landscape of the English West Country and London society, painting a vivid picture of the economic vulnerability of women in early nineteenth-century England. A bittersweet romance about duty, disappointment, and the slow cultivation of happiness."
+  },
+  {
+    "id": "book-008",
+    "title": "Jane Eyre",
+    "author": "Charlotte Brontë",
+    "year": 1847,
+    "genre": "Classic",
+    "description": "Orphaned and mistreated, plain and fiercely principled Jane Eyre grows up to become a governess at Thornfield Hall, the brooding estate of the mysterious Edward Rochester in Victorian England. Their unconventional friendship deepens into love, but Thornfield holds a dark secret that will shatter Jane's hopes and force her to choose between passion and her own moral integrity. Brontë's novel is a landmark of English literature, combining a gothic atmosphere of locked rooms and midnight screams with a deeply psychological portrait of a woman who refuses to compromise her sense of self-worth regardless of poverty or social pressure. Jane's voice — direct, intelligent, and unsparing — was revolutionary for its time. The Yorkshire moors, the fire-lit library, and the mystery of the third floor make the novel as atmospheric as any ghost story."
+  },
+  {
+    "id": "book-009",
+    "title": "Great Expectations",
+    "author": "Charles Dickens",
+    "year": 1861,
+    "genre": "Classic",
+    "description": "Young Pip, a blacksmith's apprentice in the marshes of Victorian Kent, encounters an escaped convict one Christmas Eve and begins a chain of events that will transform his life. When an anonymous benefactor arranges for Pip to become a gentleman in London, he leaves behind his humble origins and his childhood friend Joe Gargery in pursuit of wealth and the unattainable Estella. Dickens builds a sprawling portrait of Victorian England's class system, showing how money warps identity, corrupts relationships, and creates false hierarchies. The mystery of Pip's true benefactor and its eventual revelation force him to reckon with what he has thrown away in the name of social ambition. A richly plotted novel full of unforgettable characters — Miss Havisham rotting in her wedding dress, Wemmick's miniature castle, the sinister lawyer Jaggers — Great Expectations remains Dickens's most perfectly constructed work."
+  },
+  {
+    "id": "book-010",
+    "title": "Wuthering Heights",
+    "author": "Emily Brontë",
+    "year": 1847,
+    "genre": "Classic",
+    "description": "On the wild Yorkshire moors of northern England, the foundling Heathcliff is brought into the Earnshaw family and forms a passionate, obsessive bond with Catherine Earnshaw that transcends class, death, and social convention. When Catherine chooses to marry the genteel Edgar Linton for social advancement, Heathcliff disappears, returning years later as a wealthy and vengeful man determined to destroy the families that humiliated him. Narrated through multiple layers of testimony, the novel moves between the harsh bleakness of the moors and the contrasting comfort of the neighbouring Thrushcross Grange. Emily Brontë's only novel is one of the most ferociously original works in English literature — a dark, disturbing examination of love as possession, cruelty, and obsession rather than tenderness. The windswept landscape is inseparable from the characters' turbulent inner lives."
+  },
+  {
+    "id": "book-011",
+    "title": "The Hobbit",
+    "author": "J.R.R. Tolkien",
+    "year": 1937,
+    "genre": "Fantasy",
+    "description": "Bilbo Baggins is a thoroughly respectable hobbit who wants nothing more than a peaceful life in his comfortable hole under the hill at Bag End. His world is upended when the wizard Gandalf and a company of thirteen dwarves arrive on his doorstep and recruit him as their 'burglar' for a quest to reclaim the Lonely Mountain from the dragon Smaug. The journey takes Bilbo through troll-infested forests, a goblin mountain, the halls of the Wood-elves, and ultimately to a dangerous riddle contest in the dark with the creature Gollum. Tolkien's beloved tale of adventure, courage, and unexpected heroism laid the foundation for his epic Lord of the Rings and the entire modern fantasy genre. The novel celebrates the homely virtues of comfort and friendship while showing that even the most unlikely hero can rise to greatness."
+  },
+  {
+    "id": "book-012",
+    "title": "The Name of the Wind",
+    "author": "Patrick Rothfuss",
+    "year": 2007,
+    "genre": "Fantasy",
+    "description": "Kvothe, now living in hiding as a simple innkeeper, agrees to tell his life story to a scribe known as Chronicler over three days. The tale he tells is extraordinary: a childhood among travelling performers, survival as an orphaned street child in a brutal city, and admission to the legendary University where he masters the science of sympathy — a form of magic that binds things together through force of will. Rothfuss's prose is luminous and precise, and Kvothe is a captivating narrator — brilliant, reckless, and achingly human despite his near-mythic reputation. The University's libraries, the music of the Edema Ruh, and the ever-present mystery of the Chandrian who killed his family make this one of the most immersive opening volumes in epic fantasy. A story about how legends are made and how far they diverge from the flawed truth."
+  },
+  {
+    "id": "book-013",
+    "title": "A Wizard of Earthsea",
+    "author": "Ursula K. Le Guin",
+    "year": 1968,
+    "genre": "Fantasy",
+    "description": "On the island of Gont in the archipelago world of Earthsea, a goat-herd boy named Ged discovers he has extraordinary magical talent and wins a place at the great School for Wizards on the island of Roke. Reckless and proud, he provokes a duel and tears open the boundary between the living and the dead, unleashing a nameless shadow creature that hunts him across the seas. To survive, Ged must stop running from the shadow and turn to face it, embarking on a quest that becomes a profound journey into self-knowledge. Le Guin's spare, mythic prose creates a world as real and deep as any in literature, and her central insight — that the shadow we fear is the dark half of ourselves — gives the novel a psychological weight rare in fantasy. A short masterpiece that rewards rereading throughout a lifetime."
+  },
+  {
+    "id": "book-014",
+    "title": "The Way of Kings",
+    "author": "Brandon Sanderson",
+    "year": 2010,
+    "genre": "Fantasy",
+    "description": "On the storm-ravaged world of Roshar, where highstorms periodically scour the landscape and mankind has adapted all aspects of life to shelter and survival, three characters' fates intertwine across an epic canvas. Kaladin, a surgeon's son turned slave turned soldier, struggles to protect the men under his command despite being worked to death in the chasms. Shallan, a young noblewoman, schemes to steal from a renowned scholar to save her family. And Dalinar, a highprince haunted by visions of an ancient order of knights, questions whether the war he is fighting makes any sense. Sanderson's intricate magic system — based on Stormlight absorbed from the storms — is one of the most inventive in fantasy, and the world-building is staggeringly thorough. The first volume of the Stormlight Archive launches one of the most ambitious fantasy series of the twenty-first century."
+  },
+  {
+    "id": "book-015",
+    "title": "The Hound of the Baskervilles",
+    "author": "Arthur Conan Doyle",
+    "year": 1902,
+    "genre": "Mystery",
+    "description": "When Sir Charles Baskerville is found dead on the foggy Devonshire moors with an expression of horror on his face, Sherlock Holmes and Dr. Watson are engaged to protect the new heir, Sir Henry Baskerville, from the ancient family curse — a spectral hound said to stalk the moors. Holmes sends Watson to Devon while he secretly works the case from London, and Watson's dispatches reveal a landscape of bogs, escaped convicts, and neighbours with suspicious motives. The novel is the most beloved of all Holmes adventures, combining a gripping murder mystery with the atmospheric terror of the wild moorland setting. Conan Doyle balances the rational method of deductive detection against the superstitious dread of the supernatural with masterly control of tension. A classic locked-room mystery expanded to the scale of an entire brooding landscape."
+  },
+  {
+    "id": "book-016",
+    "title": "And Then There Were None",
+    "author": "Agatha Christie",
+    "year": 1939,
+    "genre": "Mystery",
+    "description": "Ten strangers with no apparent connection to each other are lured to a remote island mansion off the Devon coast under false pretences. Trapped by bad weather and cut off from the mainland, they hear a recorded voice accuse each of them of a past murder for which they escaped legal punishment — and then they begin to die, one by one, in the manner of a children's counting rhyme. Christie's plotting is airtight, her misdirection almost impossibly clever, and the claustrophobic island setting ratchets tension to an unbearable pitch. With no detective hero, every surviving character becomes simultaneously a suspect and a potential next victim. The best-selling mystery novel of all time, And Then There Were None remains the pinnacle of the detective fiction genre and a masterclass in narrative architecture."
+  },
+  {
+    "id": "book-017",
+    "title": "The Girl with the Dragon Tattoo",
+    "author": "Stieg Larsson",
+    "year": 2005,
+    "genre": "Mystery",
+    "description": "Disgraced financial journalist Mikael Blomkvist is hired by an elderly industrialist to solve a forty-year-old disappearance within the wealthy and dysfunctional Vanger family, whose members are each other's most obvious suspects. Working alongside him is Lisbeth Salander, a brilliant and socially isolated computer hacker who is also a ward of the Swedish state and the target of a corrupt guardian's abuse. Together they uncover a trail of violence against women that runs far deeper than a single missing girl. Larsson's novel is a savage critique of Swedish society's treatment of vulnerable people, wrapped in a propulsive thriller that combines financial intrigue, family secrets, and brutal violence. The partnership between the morally upright Blomkvist and the fierce, damaged Salander became one of the defining character pairings of twenty-first century crime fiction."
+  },
+  {
+    "id": "book-018",
+    "title": "Sapiens: A Brief History of Humankind",
+    "author": "Yuval Noah Harari",
+    "year": 2011,
+    "genre": "Non-Fiction",
+    "description": "Yuval Noah Harari traces the full arc of human history from the emergence of Homo sapiens in Africa seventy thousand years ago to the present day, arguing that what made our species dominant was not superior intelligence or tool use but the unique ability to believe in shared fictions — religions, nations, money, corporations. The Cognitive Revolution, the Agricultural Revolution, and the Scientific Revolution are each presented as transformative ruptures that reshaped human societies in ways that brought both progress and profound suffering. Harari is a bracingly clear thinker who synthesises archaeology, biology, economics, and philosophy into an accessible narrative that challenges the reader's assumptions about human nature and civilisation. The book raises uncomfortable questions about whether the agricultural revolution was a blessing or a trap, and whether modern happiness exceeds that of hunter-gatherers. Essential reading for anyone who wants to understand where humanity came from and where it might be going."
+  },
+  {
+    "id": "book-019",
+    "title": "A Brief History of Time",
+    "author": "Stephen Hawking",
+    "year": 1988,
+    "genre": "Non-Fiction",
+    "description": "Stephen Hawking set out to explain the most fundamental questions about the universe — the nature of time, the origin of the Big Bang, the strange physics of black holes, and the search for a unified theory that would reconcile general relativity with quantum mechanics — to an audience of general readers with no scientific background. His achievement is remarkable: a book that takes seriously its readers' curiosity while never sacrificing intellectual honesty. Topics include the arrow of time, the theoretical possibility of time travel, the information paradox of black holes, and the philosophical implications of cosmology for the existence of God. Published in 1988 and a bestseller for years, it opened the science of the very large and the very small to millions of people around the world. Few books have done more to democratise physics and inspire a generation of scientists."
+  },
+  {
+    "id": "book-020",
+    "title": "The Immortal Life of Henrietta Lacks",
+    "author": "Rebecca Skloot",
+    "year": 2010,
+    "genre": "Non-Fiction",
+    "description": "In 1951, cells taken without consent from a Black woman named Henrietta Lacks during her cancer treatment at Johns Hopkins Hospital gave rise to the immortal HeLa cell line — the first human cells to survive and multiply outside the body indefinitely. These cells contributed to the polio vaccine, cancer research, genetics, and countless other medical advances, yet Henrietta's family did not know of their existence for decades and received no compensation while corporations profited enormously. Skloot weaves between the history of cell biology and medical ethics on one hand, and the story of Henrietta's family — particularly her daughter Deborah — on the other. The book is a powerful examination of race, class, medicine, and exploitation in twentieth-century America, and raises questions about who owns the cells and tissues of the human body that remain unresolved today. A gripping work of narrative non-fiction that reads with the urgency of a mystery."
+  },
+  {
+    "id": "book-021",
+    "title": "All the Light We Cannot See",
+    "author": "Anthony Doerr",
+    "year": 2014,
+    "genre": "Historical Fiction",
+    "description": "In Nazi-occupied France, Marie-Laure, a blind French girl, and Werner, a German orphan with a gift for radio engineering, are drawn toward each other by the chaos of World War II. Marie-Laure flees Paris with her father, a locksmith at the natural history museum, carrying what may be the legendary Sea of Flames diamond, and eventually shelters in the walled Breton city of Saint-Malo. Werner is recruited into the Hitler Youth and then the German Army, where his radio skills are used to hunt resistance fighters across Europe. Doerr's prose is extraordinarily beautiful, and his interweaving of the two narratives builds to a devastating convergence. The novel won the Pulitzer Prize in 2015 and stands as one of the most humane and elegantly constructed war novels written in the twenty-first century."
+  },
+  {
+    "id": "book-022",
+    "title": "The Pillars of the Earth",
+    "author": "Ken Follett",
+    "year": 1989,
+    "genre": "Historical Fiction",
+    "description": "Set in twelfth-century England during the civil war between King Stephen and Empress Maud, The Pillars of the Earth follows the decades-long project to build a Gothic cathedral in the fictional town of Kingsbridge. At the centre is Tom Builder, a master mason who dreams of constructing the perfect church, and Prior Philip, a monk whose devotion to his community drives him into fierce conflict with the corrupt local bishop and the brutal Hamleigh family. Follett immerses readers completely in the brutal, superstitious, and violently hierarchical world of medieval England — its monasteries, wool markets, stone quarries, and battlefield intrigues. The construction of the cathedral — the engineering challenges, the stone-cutting, the raising of the vaults — is described with loving technical precision. An epic of ambition, faith, cruelty, and the human longing to create something lasting that transcends any single life."
+  }
+]

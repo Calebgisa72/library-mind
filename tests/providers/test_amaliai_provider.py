@@ -31,7 +31,9 @@ def _make_httpx_response(
     return mock
 
 
-def _chat_response(text: str = "hello", prompt_tokens: int = 5, completion_tokens: int = 3) -> dict[str, object]:
+def _chat_response(
+    text: str = "hello", prompt_tokens: int = 5, completion_tokens: int = 3
+) -> dict[str, object]:
     return {
         "choices": [{"message": {"content": text}}],
         "usage": {"prompt_tokens": prompt_tokens, "completion_tokens": completion_tokens},
@@ -42,7 +44,7 @@ def _embedding_response(vectors: list[list[float]]) -> dict[str, object]:
     return {"data": [{"embedding": v} for v in vectors]}
 
 
-@pytest.fixture()
+@pytest.fixture
 def provider() -> AmaliAIProvider:
     """AmaliAI provider with a pre-injected mock httpx client."""
     mock_client = MagicMock(spec=httpx.AsyncClient)

@@ -61,7 +61,7 @@ class ResilientAIService:
     # ------------------------------------------------------------------
 
     @classmethod
-    def from_settings(cls, settings: Settings) -> "ResilientAIService":
+    def from_settings(cls, settings: Settings) -> ResilientAIService:
         """Build a ``ResilientAIService`` from application settings.
 
         Providers are instantiated in the order returned by
@@ -72,10 +72,10 @@ class ResilientAIService:
         not happen in practice because ``Settings._require_at_least_one_provider_key``
         already guards against that at startup).
         """
-        # Import here to avoid circular imports at module load time.
-        from app.providers.anthropic_provider import AnthropicProvider
-        from app.providers.amaliai_provider import AmaliAIProvider
-        from app.providers.openai_provider import OpenAIProvider
+        # Local imports avoid a circular import through app.providers.__init__.
+        from app.providers.amaliai_provider import AmaliAIProvider  # noqa: PLC0415
+        from app.providers.anthropic_provider import AnthropicProvider  # noqa: PLC0415
+        from app.providers.openai_provider import OpenAIProvider  # noqa: PLC0415
 
         providers: list[AIProvider] = []
 

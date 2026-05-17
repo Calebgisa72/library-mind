@@ -26,7 +26,7 @@ Management*.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from app.core.logging import get_logger
 
@@ -153,7 +153,7 @@ class UsageTracker:
         ) * output_per_1k
 
         rec = UsageRecord(
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
             provider=provider,
             model=model,
             operation=operation,
@@ -191,12 +191,12 @@ class UsageTracker:
             Sum of ``cost_usd`` for all matching records.  Returns ``0.0``
             when there are no records for that day.
         """
-        target = day or datetime.now(tz=timezone.utc).date()
+        target = day or datetime.now(tz=UTC).date()
         return sum(r.cost_usd for r in self._records if r.timestamp.date() == target)
 
     def total_requests_today(self) -> int:
         """Return the count of AI calls recorded today (UTC)."""
-        today = datetime.now(tz=timezone.utc).date()
+        today = datetime.now(tz=UTC).date()
         return sum(1 for r in self._records if r.timestamp.date() == today)
 
     def all_records(self) -> list[UsageRecord]:

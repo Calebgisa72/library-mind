@@ -46,7 +46,7 @@ The project is delivered in phases. Each phase is gated on review before the nex
 | 0     | Environment, tooling, documentation                      | ✅ complete     |
 | 1     | Multi-provider AI layer with failover                    | ✅ complete     |
 | 2     | Cache, rate limiter, usage tracker                       | ✅ complete     |
-| 3     | Knowledge base + embeddings + vector store               | ⏳ pending      |
+| 3     | Knowledge base + embeddings + vector store               | ✅ complete     |
 | 4     | RAG engine                                               | ⏳ pending      |
 | 5     | AI librarian chatbot                                     | ⏳ pending      |
 | 6     | Ticket classification + review summarisation             | ⏳ pending      |

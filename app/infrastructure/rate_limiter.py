@@ -61,7 +61,7 @@ class TokenBucketRateLimiter:
             raise ValueError("burst must be positive")
         self._rate: float = requests_per_minute / 60.0  # tokens per second
         self._burst: float = float(burst)
-        self._tokens: float = float(burst)   # start full
+        self._tokens: float = float(burst)  # start full
         self._last_refill: float = time.monotonic()
         self._lock = asyncio.Lock()
 

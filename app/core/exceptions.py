@@ -22,6 +22,8 @@ Concrete handlers are wired in :mod:`app.api` later.
 
 from __future__ import annotations
 
+from typing import Any
+
 
 class LibraryMindError(Exception):
     """Root of the LibraryMind exception tree.
@@ -31,9 +33,9 @@ class LibraryMindError(Exception):
 
     default_message: str = "An internal error occurred."
 
-    def __init__(self, message: str | None = None, *, detail: dict | None = None) -> None:
+    def __init__(self, message: str | None = None, *, detail: dict[str, Any] | None = None) -> None:
         super().__init__(message or self.default_message)
-        self.detail: dict = detail or {}
+        self.detail: dict[str, Any] = detail or {}
 
 
 # ── Configuration ────────────────────────────────────────────────────────────
