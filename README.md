@@ -43,9 +43,9 @@ The project is delivered in phases. Each phase is gated on review before the nex
 
 | Phase | Scope                                                    | Status         |
 |-------|----------------------------------------------------------|----------------|
-| 0     | Environment, tooling, documentation                      | ✅ in review    |
-| 1     | Multi-provider AI layer with failover                    | ⏳ pending      |
-| 2     | Cache, rate limiter, usage tracker                       | ⏳ pending      |
+| 0     | Environment, tooling, documentation                      | ✅ complete     |
+| 1     | Multi-provider AI layer with failover                    | ✅ complete     |
+| 2     | Cache, rate limiter, usage tracker                       | ✅ complete     |
 | 3     | Knowledge base + embeddings + vector store               | ⏳ pending      |
 | 4     | RAG engine                                               | ⏳ pending      |
 | 5     | AI librarian chatbot                                     | ⏳ pending      |
@@ -174,7 +174,7 @@ To leave the virtual environment, run `deactivate` from any shell. Everything be
 | `pytest tests/providers/`                        | Runs only the provider tests (replace with any path).                       |
 | `pytest --cov-report=html`                       | Generates an HTML coverage report; open `htmlcov/index.html` in a browser.  |
 
-The test suite is empty in Phase 0; it grows phase by phase and is consolidated in Phase 8.
+The test suite grows phase by phase and is consolidated in Phase 8. Phases 0–2 currently have 105 tests (all passing).
 
 ### Phase-specific commands
 
