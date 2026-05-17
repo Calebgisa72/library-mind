@@ -4,7 +4,7 @@
 
 The GitHub Actions workflow at `.github/workflows/ci.yml.disabled` is **intentionally inactive**. Renaming the file to use a `.disabled` suffix prevents GitHub from triggering it while keeping the configuration in version control, ready to re-activate the moment billing is restored.
 
-This pause is purely a billing/account-state matter — every engineering standard the workflow encodes (lint, type-check, test) is still enforced locally via the `Makefile`, the `pre-commit` hooks, and the PR template's checklist.
+This pause is purely a billing/account-state matter — every engineering standard the workflow encodes (lint, type-check, test) is still enforced locally via the raw command set in the README's *Commands* section, the `pre-commit` hooks, and the PR template's checklist.
 
 ## Re-enabling CI
 
@@ -16,6 +16,8 @@ git push
 ```
 
 That single rename is the entire re-activation step. The workflow file itself remains correct: it runs Ruff (lint), Black (format check), Mypy (strict), and `pytest --collect-only` on a Python 3.11/3.12 matrix.
+
+> **Note on the local toolchain.** This repository does **not** use a Makefile (Make is not natively available on Windows). All commands are invoked directly. The CI workflow uses the same raw commands listed below.
 
 ## What CI runs (when active)
 
@@ -44,11 +46,26 @@ None of those land in Phase 0; they belong in a dedicated CI hardening pass afte
 
 ## Local equivalents (use these in the meantime)
 
+Activate your virtual environment first (`source .venv/bin/activate` on Linux/macOS, `.\.venv\Scripts\Activate.ps1` on Windows PowerShell), then:
+
 ```bash
-make check         # ruff + black --check + mypy — same gates CI would run
-make test          # pytest with coverage (currently empty)
-make lint          # ruff with auto-fix (CI doesn't auto-fix)
-pre-commit run --all-files   # run every configured hook
+# Read-only quality gates — same set CI would run
+ruff check app scripts tests
+black --check app scripts tests
+mypy app
+
+# Tests with coverage (suite is empty in Phase 0; populates from Phase 1 onwards)
+pytest
+
+# Auto-fix mode (CI doesn't auto-fix)
+ruff check --fix app scripts tests
+ruff format app scripts tests
+black app scripts tests
+
+# Run every configured pre-commit hook across the tree
+pre-commit run --all-files
 ```
 
-Treat these as mandatory before opening a PR. Once CI is back, they continue to be useful as the fast local feedback loop; CI becomes the second-line gate.
+Treat the first block as mandatory before opening a PR. Once CI is back, these continue to be useful as the fast local feedback loop; CI becomes the second-line gate.
+
+A copy-paste reference for every command in the project lives in the [`Commands`](../README.md#commands) section of the README.

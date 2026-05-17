@@ -36,8 +36,8 @@
 ## Checklist
 
 - [ ] No secrets committed (`.env`, API keys)
-- [ ] `make check` passes (lint + format + typecheck)
-- [ ] `make test` passes
+- [ ] Quality gates pass: `ruff check app scripts tests` + `black --check app scripts tests` + `mypy app`
+- [ ] Tests pass: `pytest`
 - [ ] Documentation updated (`README.md`, `docs/`)
 - [ ] No business logic added that belongs to a future phase
 - [ ] Commit messages follow Conventional Commits

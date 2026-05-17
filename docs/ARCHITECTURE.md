@@ -85,7 +85,6 @@ library-mind/
 ├── .github/workflows/    # CI definitions (currently disabled — see docs/CI.md)
 ├── docker-compose.yml    # Local dev stack (api + redis)
 ├── Dockerfile            # Multi-stage container build
-├── Makefile              # Developer task runner
 └── pyproject.toml        # Deps, build, lint, type, test config
 ```
 
