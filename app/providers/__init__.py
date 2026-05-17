@@ -1,17 +1,16 @@
-"""AI provider abstraction layer.
+"""AI provider abstraction layer -- Phase 1 public surface."""
 
-Exposes a single ``AIProvider`` protocol that all concrete providers
-(OpenAI, Anthropic, AmaliAI) implement. A ``ResilientAIService`` (Part 1)
-maintains an ordered list of providers and falls through on failure.
+from app.providers.base import AIProvider, GenerationResult
+from app.providers.amaliai_provider import AmaliAIProvider
+from app.providers.anthropic_provider import AnthropicProvider
+from app.providers.openai_provider import OpenAIProvider
+from app.providers.resilient import ResilientAIService
 
-This indirection means the rest of the app talks to one interface; vendor
-changes are localised to a single module.
-
-Planned modules:
-
-* :mod:`app.providers.base` — protocol / abstract base class.
-* :mod:`app.providers.openai_provider`
-* :mod:`app.providers.anthropic_provider`
-* :mod:`app.providers.amaliai_provider`
-* :mod:`app.providers.resilient` — failover orchestrator.
-"""
+__all__ = [
+    "AIProvider",
+    "AmaliAIProvider",
+    "AnthropicProvider",
+    "GenerationResult",
+    "OpenAIProvider",
+    "ResilientAIService",
+]
