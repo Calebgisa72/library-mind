@@ -20,7 +20,6 @@ from app.core.exceptions import AllProvidersFailedError, ProviderUnavailableErro
 from app.providers.base import AIProvider, GenerationResult
 from app.providers.resilient import ResilientAIService
 
-
 # ---------------------------------------------------------------------------
 # Helpers / fake providers
 # ---------------------------------------------------------------------------
@@ -117,9 +116,7 @@ class TestResilientAIServiceGenerate:
         with structlog.testing.capture_logs() as log_entries:
             await svc.generate("hello")
 
-        warning_events = [
-            e for e in log_entries if e.get("log_level") == "warning"
-        ]
+        warning_events = [e for e in log_entries if e.get("log_level") == "warning"]
         assert any(
             e.get("event") == "provider.failed" and e.get("provider") == "openai"
             for e in warning_events

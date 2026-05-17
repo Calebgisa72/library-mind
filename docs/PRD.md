@@ -1,7 +1,7 @@
 # Product Requirements Document — LibraryMind
 
 | | |
-|---|---|
+| --- | --- |
 | **Document owner** | Gisa Mugisha Caleb Pacifique |
 | **Status** | Draft — Phase 0 |
 | **Last updated** | 2026-05-15 |
@@ -40,8 +40,6 @@ We assume the operator has API credentials for at least one of OpenAI, Anthropic
 ## 6. Constraints
 
 The implementation language is Python 3.11+. The web framework must be FastAPI. The vector database must support cosine similarity and persist locally without a server process — ChromaDB satisfies this. The application must start successfully with as few as one provider configured. Each AI call must be retried with exponential backoff before falling through to the next provider. Every external call must be tokenised and costed in USD against a per-model price table.
-
-The internal collaboration files (`Agent.md`, `Guidelines.md`, `handoff.md`) are deliberately git-ignored: they support AI-assisted development but are not part of the public repository.
 
 ## 7. Functional Requirements
 

@@ -104,7 +104,7 @@ class Settings(BaseSettings):
         ordered: list[ProviderName] = [self.primary_provider]
         for name in ("openai", "anthropic", "amaliai"):
             if name not in ordered:
-                ordered.append(name)  # type: ignore[arg-type]
+                ordered.append(name)
 
         present: list[ProviderName] = []
         for name in ordered:
@@ -120,7 +120,7 @@ class Settings(BaseSettings):
             return bool(self.anthropic_api_key)
         if name == "amaliai":
             return bool(self.amaliai_api_key)
-        return False
+        return False  # type: ignore[unreachable]
 
     # --------------------------------------------------------------- validation
     @model_validator(mode="after")
@@ -147,4 +147,4 @@ def get_settings() -> Settings:
     re-parse the environment on every request. Tests that need to override
     configuration should clear the cache with ``get_settings.cache_clear()``.
     """
-    return Settings()  # type: ignore[call-arg]
+    return Settings()

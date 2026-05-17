@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from app.infrastructure.keys import make_key
 
 
@@ -32,7 +30,7 @@ class TestMakeKey:
         version, scope, digest = parts
         assert version == "v1"
         assert scope == "rag"
-        assert len(digest) == 64          # sha256 hex = 64 chars
+        assert len(digest) == 64  # sha256 hex = 64 chars
         assert all(c in "0123456789abcdef" for c in digest)
 
     def test_custom_version_prefix(self) -> None:

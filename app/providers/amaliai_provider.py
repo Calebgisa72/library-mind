@@ -111,8 +111,7 @@ class AmaliAIProvider:
         """
         if not self.model:
             raise ProviderUnavailableError(
-                "AmaliAI chat model is not configured. "
-                "Set AMALIAI_CHAT_MODEL in your .env file."
+                "AmaliAI chat model is not configured. " "Set AMALIAI_CHAT_MODEL in your .env file."
             )
         try:
             return await self._do_generate(
@@ -122,9 +121,7 @@ class AmaliAIProvider:
                 max_tokens=max_tokens,
             )
         except (httpx.TimeoutException, httpx.ConnectError) as exc:
-            raise ProviderUnavailableError(
-                f"AmaliAI network error after retries: {exc}"
-            ) from exc
+            raise ProviderUnavailableError(f"AmaliAI network error after retries: {exc}") from exc
         except ProviderUnavailableError:
             raise
         except httpx.HTTPError as exc:
@@ -141,9 +138,7 @@ class AmaliAIProvider:
         except ProviderUnavailableError:
             raise
         except httpx.HTTPError as exc:
-            raise ProviderUnavailableError(
-                f"AmaliAI embedding HTTP error: {exc}"
-            ) from exc
+            raise ProviderUnavailableError(f"AmaliAI embedding HTTP error: {exc}") from exc
 
     # ------------------------------------------------------------------
     # Private retry-decorated helpers
@@ -183,9 +178,7 @@ class AmaliAIProvider:
 
         if response.status_code in _RETRYABLE_STATUSES:
             # Raise our own domain exception so the tenacity decorator retries.
-            raise ProviderUnavailableError(
-                f"AmaliAI returned HTTP {response.status_code}"
-            )
+            raise ProviderUnavailableError(f"AmaliAI returned HTTP {response.status_code}")
 
         response.raise_for_status()
         data = response.json()

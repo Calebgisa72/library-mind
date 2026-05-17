@@ -48,7 +48,7 @@ class AIProvider(Protocol):
         system: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 1024,
-    ) -> "GenerationResult":
+    ) -> GenerationResult:
         """Generate a text completion for ``prompt``.
 
         Parameters
