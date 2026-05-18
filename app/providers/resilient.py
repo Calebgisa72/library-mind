@@ -1,21 +1,21 @@
-"""Resilient AI service — ordered failover orchestrator.
+"""Resilient AI service - ordered failover orchestrator.
 
-``ResilientAIService`` maintains an ordered list of ``AIProvider`` instances and
-tries them in sequence.  If a provider raises ``ProviderError``, it logs a
-warning and falls through to the next.  If every provider fails, it raises
-``AllProvidersFailedError`` (a ``RuntimeError`` subclass), satisfying Part 1
-acceptance criterion: *"If all providers are down, a RuntimeError is raised
-with a helpful message."*
+ResilientAIService maintains an ordered list of AIProvider instances and
+tries them in sequence. If a provider raises ProviderError, it logs a
+warning and falls through to the next. If every provider fails, it raises
+AllProvidersFailedError (a RuntimeError subclass), satisfying Part 1
+acceptance criterion: "If all providers are down, a RuntimeError is raised
+with a helpful message."
 
 Design notes
 ------------
-* The resilient service itself satisfies the ``AIProvider`` protocol, so a
+* The resilient service itself satisfies the AIProvider protocol, so a
   caller cannot tell whether it is talking to a single provider or a chain.
-* Provider ordering respects ``Settings.configured_providers`` which puts the
-  ``PRIMARY_PROVIDER`` first.
-* No caching, rate-limiting, or usage tracking here — those wrap this service
+* Provider ordering respects Settings.configured_providers which puts the
+  PRIMARY_PROVIDER first.
+* No caching, rate-limiting, or usage tracking here - those wrap this service
   from outside (Phase 2).
-* ``from_settings()`` is the canonical factory method so application startup
+* from_settings() is the canonical factory method so application startup
   code never touches individual provider constructors.
 """
 
@@ -30,20 +30,21 @@ log = get_logger(__name__)
 
 
 class ResilientAIService:
-    """Ordered failover orchestrator over a list of ``AIProvider`` instances.
+    """Ordered failover orchestrator over a list of AIProvider instances.
 
-    The service tries each provider in the order supplied at construction.  On
-    a ``ProviderError``, it logs the failure and moves on.  Only when every
-    provider has been exhausted does it raise ``AllProvidersFailedError``.
+    The service tries each provider in the order supplied at construction. On
+    a ProviderError, it logs the failure and moves on. Only when every
+    provider has been exhausted does it raise AllProvidersFailedError.
 
-    This class satisfies the ``AIProvider`` protocol (it has ``generate`` and
-    ``embed`` with matching signatures), so it can be used wherever an
-    ``AIProvider`` is expected without revealing that failover is happening.
+    This class satisfies the AIProvider protocol (it has generate,
+    generate_chat, and embed with matching signatures), so it can be used
+    wherever an AIProvider is expected without revealing that failover is
+    happening.
 
     Parameters
     ----------
     providers:
-        Non-empty ordered list of providers to try.  The first entry is the
+        Non-empty ordered list of providers to try. The first entry is the
         primary provider; subsequent entries are fallbacks.
     """
 
@@ -51,7 +52,7 @@ class ResilientAIService:
         if not providers:
             raise ValueError("ResilientAIService requires at least one provider.")
         self._providers = providers
-        # Expose ``name`` and ``model`` from the primary provider so this class
+        # Expose name and model from the primary provider so this class
         # looks like a regular AIProvider to callers.
         self.name: str = providers[0].name
         self.model: str = providers[0].model
@@ -62,14 +63,14 @@ class ResilientAIService:
 
     @classmethod
     def from_settings(cls, settings: Settings) -> ResilientAIService:
-        """Build a ``ResilientAIService`` from application settings.
+        """Build a ResilientAIService from application settings.
 
         Providers are instantiated in the order returned by
-        ``settings.configured_providers`` (``PRIMARY_PROVIDER`` first).
+        settings.configured_providers (PRIMARY_PROVIDER first).
         Only providers with a key present in settings are included.
 
-        Raises ``ValueError`` if no providers could be built (which should
-        not happen in practice because ``Settings._require_at_least_one_provider_key``
+        Raises ValueError if no providers could be built (which should
+        not happen in practice because Settings._require_at_least_one_provider_key
         already guards against that at startup).
         """
         # Local imports avoid a circular import through app.providers.__init__.
@@ -126,17 +127,17 @@ class ResilientAIService:
     ) -> GenerationResult:
         """Attempt generation with each provider in order.
 
-        Returns on the first success.  If all providers raise ``ProviderError``,
-        raises ``AllProvidersFailedError`` with a summary of every attempt.
+        Returns on the first success. If all providers raise ProviderError,
+        raises AllProvidersFailedError with a summary of every attempt.
 
         Part 1 acceptance criteria satisfied:
         - "Calling generate() returns a text response from the primary provider"
         - "Temporarily invalidating the primary provider's API key causes
           automatic fallback to the second provider without crashing"
         - "Retry logic is observable in logs (you can see it retrying before
-          falling back)" — satisfied by each provider's tenacity decorator.
+          falling back)" - satisfied by each provider's tenacity decorator.
         - "If all providers are down, a RuntimeError is raised with a helpful
-          message" — AllProvidersFailedError inherits from RuntimeError.
+          message" - AllProvidersFailedError inherits from RuntimeError.
         """
         errors: list[tuple[str, ProviderError]] = []
 
@@ -171,12 +172,60 @@ class ResilientAIService:
             detail={"attempts": [n for n, _ in errors]},
         )
 
+    async def generate_chat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float = 0.7,
+        max_tokens: int = 1024,
+    ) -> GenerationResult:
+        """Attempt chat-history generation with each provider in order.
+
+        Returns on the first success. Falls through on ProviderError and
+        raises AllProvidersFailedError if every provider fails.
+        """
+        errors: list[tuple[str, ProviderError]] = []
+
+        for provider in self._providers:
+            try:
+                log.info(
+                    "provider.generate_chat.attempt",
+                    provider=provider.name,
+                    model=provider.model,
+                )
+                result = await provider.generate_chat(
+                    messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                log.info(
+                    "provider.generate_chat.success",
+                    provider=provider.name,
+                    model=provider.model,
+                    prompt_tokens=result.prompt_tokens,
+                    completion_tokens=result.completion_tokens,
+                )
+                return result
+            except ProviderError as exc:
+                log.warning(
+                    "provider.generate_chat.failed",
+                    provider=provider.name,
+                    error=str(exc),
+                )
+                errors.append((provider.name, exc))
+                continue
+
+        raise AllProvidersFailedError(
+            f"All providers failed (generate_chat): {', '.join(f'{n}={e}' for n, e in errors)}",
+            detail={"attempts": [n for n, _ in errors]},
+        )
+
     async def embed(self, text: str | list[str]) -> list[list[float]]:
         """Attempt embedding with each provider in order.
 
-        Skips providers that raise ``ProviderError`` (including
-        ``AnthropicProvider``, which doesn't support embeddings) and falls
-        through to the next.  Raises ``AllProvidersFailedError`` if no provider
+        Skips providers that raise ProviderError (including
+        AnthropicProvider, which doesn't support embeddings) and falls
+        through to the next. Raises AllProvidersFailedError if no provider
         succeeds.
         """
         errors: list[tuple[str, ProviderError]] = []

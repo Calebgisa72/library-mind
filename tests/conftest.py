@@ -7,7 +7,19 @@ will be added alongside the modules they exercise in later phases.
 
 from __future__ import annotations
 
+import datetime as _dt
+import sys
+
 import pytest
+
+# ---------------------------------------------------------------------------
+# Python 3.10 compatibility shim (sandbox only -- the project requires 3.11+).
+# datetime.UTC was added in 3.11; usage_tracker.py imports it directly.
+# This shim lets the test suite run in a 3.10 sandbox environment without
+# modifying any app code. On Python 3.11+ the hasattr guard is a no-op.
+# ---------------------------------------------------------------------------
+if sys.version_info < (3, 11) and not hasattr(_dt, "UTC"):
+    _dt.UTC = _dt.timezone.utc  # type: ignore[attr-defined]  # noqa: UP017
 
 
 @pytest.fixture(scope="session")

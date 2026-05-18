@@ -53,16 +53,11 @@ class Cache:
         one in tests to avoid a real Redis connection.
     """
 
-    def __init__(
-        self,
-        *,
-        settings: Settings,
-        client: aioredis.Redis | None = None,  # type: ignore[type-arg]
-    ) -> None:
+    def __init__(self, *, settings: Settings, client: aioredis.Redis | None = None) -> None:
         self._settings = settings
         # Lazily connected: constructing the client does not open a socket.
         if client is not None:
-            self._client: aioredis.Redis | None = client  # type: ignore[type-arg]
+            self._client: aioredis.Redis | None = client
         elif settings.cache_enabled:
             self._client = aioredis.Redis.from_url(
                 settings.redis_url,
@@ -147,7 +142,7 @@ class Cache:
         if self._client is None:
             return False
         try:
-            await self._client.ping()
+            await self._client.ping()  # type: ignore[misc]
             return True
         except Exception:
             return False
