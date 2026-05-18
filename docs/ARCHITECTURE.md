@@ -70,9 +70,17 @@ library-mind/
 ├── app/
 │   ├── api/              # Layer 1: FastAPI routers (one per domain)
 │   ├── services/         # Layer 2: business orchestration
+│   │   ├── classifier.py # ClassifierService + TicketClassification (Phase 6)
+│   │   ├── summariser.py # SummariserService + ReviewSummary (Phase 6)
+│   │   ├── json_utils.py # parse_ai_json() — fence-stripping JSON parser (Phase 6)
+│   │   ├── rag.py        # RAGService (Phase 4)
+│   │   ├── chatbot.py    # ChatbotService (Phase 5)
+│   │   └── embedding.py  # EmbeddingService (Phase 3)
 │   ├── providers/        # Layer 3: AI vendor abstractions + failover
 │   ├── infrastructure/   # Layer 4: cache, rate limiter, usage tracker, vector store
 │   ├── prompts/          # Versioned prompt templates (RAG, chatbot, classifier, summariser)
+│   │   ├── classifier.py # CLASSIFIER_SYSTEM_PROMPT + few-shot examples (Phase 6)
+│   │   └── summariser.py # SUMMARISER_SYSTEM_PROMPT (Phase 6)
 │   ├── schemas/          # Pydantic request/response models
 │   ├── core/             # Settings, structured logging, exception hierarchy
 │   ├── data/             # Seed catalogue (books.json)
@@ -148,6 +156,8 @@ The chatbot path is identical except the chatbot service also retrieves and trun
 ## 5. Service Boundaries
 
 `RAGService` knows nothing about HTTP or about providers; it accepts a question and returns a structured result. `ChatbotService` depends on `RAGService` for retrieval; it does not duplicate that logic. `EmbeddingService` is shared between RAG and any other consumer that needs vectors, because embedding is the most cache-worthy operation in the system. `ClassifierService` and `SummariserService` consume only the AI provider layer — they do not touch the vector store because their inputs are self-contained.
+
+All structured-JSON responses from the AI layer pass through `app/services/json_utils.parse_ai_json()` before `json.loads`. This helper strips markdown code fences (` ```json … ``` ` and ` ``` … ``` `) that models emit despite explicit "no fences" instructions. On parse failure it raises `ProviderError` so the global handler maps it to HTTP 503 with a diagnostic body. This is the non-optional guard called out in M3 and the lab brief under *"Known pitfalls — JSON parsing failures"*.
 
 The provider layer exposes a single `AIProvider` protocol with one method (`generate(prompt, system, temperature, max_tokens)`); each concrete provider implements it. `ResilientAIService` is a *decorator* over a list of providers — it satisfies the same protocol, so callers cannot tell whether they are talking to one provider or to a fallback chain. This is the point of using protocol-based dependencies: substitution is free.
 

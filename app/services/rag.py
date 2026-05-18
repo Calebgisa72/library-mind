@@ -347,7 +347,7 @@ class RAGService:
             answer=str(payload.get("answer", "")),
             sources=sources,
             cached=True,
-            avg_relevance=float(avg) if isinstance(avg, (int, float)) else 0.0,
+            avg_relevance=float(avg) if isinstance(avg, int | float) else 0.0,
         )
 
 
