@@ -127,6 +127,35 @@ class AmaliAIProvider:
         except httpx.HTTPError as exc:
             raise ProviderUnavailableError(f"AmaliAI HTTP error: {exc}") from exc
 
+    async def generate_chat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float = 0.7,
+        max_tokens: int = 1024,
+    ) -> GenerationResult:
+        """Generate a completion from a full conversation history via AmaliAI.
+
+        AmaliAI exposes an OpenAI-compatible API, so the messages list is
+        forwarded as-is to ``POST /chat/completions``.
+        """
+        if not self.model:
+            raise ProviderUnavailableError(
+                "AmaliAI chat model is not configured. " "Set AMALIAI_CHAT_MODEL in your .env file."
+            )
+        try:
+            return await self._do_generate_chat(
+                messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+        except (httpx.TimeoutException, httpx.ConnectError) as exc:
+            raise ProviderUnavailableError(f"AmaliAI network error after retries: {exc}") from exc
+        except ProviderUnavailableError:
+            raise
+        except httpx.HTTPError as exc:
+            raise ProviderUnavailableError(f"AmaliAI HTTP error: {exc}") from exc
+
     async def embed(self, text: str | list[str]) -> list[list[float]]:
         """Generate embeddings via the AmaliAI embeddings endpoint."""
         try:
@@ -178,6 +207,49 @@ class AmaliAIProvider:
 
         if response.status_code in _RETRYABLE_STATUSES:
             # Raise our own domain exception so the tenacity decorator retries.
+            raise ProviderUnavailableError(f"AmaliAI returned HTTP {response.status_code}")
+
+        response.raise_for_status()
+        data = response.json()
+
+        text: str = data["choices"][0]["message"]["content"] or ""
+        usage = data.get("usage", {})
+        return GenerationResult(
+            text=text,
+            provider=self.name,
+            model=self.model,
+            prompt_tokens=usage.get("prompt_tokens"),
+            completion_tokens=usage.get("completion_tokens"),
+        )
+
+    @_retry
+    async def _do_generate_chat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float,
+        max_tokens: int,
+    ) -> GenerationResult:
+        """Inner chat-history generation call — raises ProviderUnavailableError on 429/5xx."""
+        log.debug(
+            "amaliai.generate_chat.attempt",
+            model=self.model,
+            n_messages=len(messages),
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+        response = await self._client.post(
+            "/chat/completions",
+            json={
+                "model": self.model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            },
+        )
+
+        if response.status_code in _RETRYABLE_STATUSES:
             raise ProviderUnavailableError(f"AmaliAI returned HTTP {response.status_code}")
 
         response.raise_for_status()

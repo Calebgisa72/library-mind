@@ -1,21 +1,21 @@
 """Anthropic (Claude) concrete AI provider.
 
-Uses the official ``anthropic`` async client.  Anthropic's Messages API
-accepts a ``system`` parameter directly, so there is no need to splice the
-system message into the ``messages`` list.
+Uses the official anthropic async client. Anthropic's Messages API
+accepts a system parameter directly, so there is no need to splice the
+system message into the messages list.
 
 Embeddings
 ----------
-Anthropic does not offer an embeddings API.  ``embed()`` raises
-``ProviderUnavailableError`` immediately; the ``ResilientAIService`` falls
-through to the next provider, and the ``EmbeddingService`` (Phase 3) will try
+Anthropic does not offer an embeddings API. embed() raises
+ProviderUnavailableError immediately; the ResilientAIService falls
+through to the next provider, and the EmbeddingService (Phase 3) will try
 OpenAI or AmaliAI.
 
 Token accounting
 ----------------
-Anthropic reports ``usage.input_tokens`` and ``usage.output_tokens`` (note the
-different field names from OpenAI's ``prompt_tokens`` / ``completion_tokens``).
-We normalise to our ``GenerationResult`` fields here so the rest of the app is
+Anthropic reports usage.input_tokens and usage.output_tokens (note the
+different field names from OpenAI's prompt_tokens / completion_tokens).
+We normalise to our GenerationResult fields here so the rest of the app is
 insulated from vendor naming differences.
 """
 
@@ -31,8 +31,8 @@ from app.providers.retry import build_provider_retry
 
 log = get_logger(__name__)
 
-# Transient errors worth retrying.  ``anthropic.AuthenticationError`` and
-# ``anthropic.PermissionDeniedError`` are NOT transient; they propagate
+# Transient errors worth retrying. anthropic.AuthenticationError and
+# anthropic.PermissionDeniedError are NOT transient; they propagate
 # straight to the outer generate(), which converts them to ProviderUnavailableError.
 _TRANSIENT = (
     anthropic.RateLimitError,
@@ -50,9 +50,9 @@ class AnthropicProvider:
     Parameters
     ----------
     api_key:
-        Anthropic API key.  Loaded from settings; never hard-coded.
+        Anthropic API key. Loaded from settings; never hard-coded.
     model:
-        The Claude model to use (e.g. ``"claude-3-5-haiku-latest"``).
+        The Claude model to use (e.g. "claude-3-5-haiku-latest").
     """
 
     name: str = "anthropic"
@@ -76,7 +76,7 @@ class AnthropicProvider:
         """Generate a completion via the Anthropic Messages API.
 
         Retries transient errors (rate limits, timeouts) up to three times
-        before raising ``ProviderUnavailableError``.
+        before raising ProviderUnavailableError.
         """
         try:
             return await self._do_generate(
@@ -92,10 +92,37 @@ class AnthropicProvider:
         except anthropic.AnthropicError as exc:
             raise ProviderUnavailableError(f"Anthropic call failed: {exc}") from exc
 
-    async def embed(self, text: str | list[str]) -> list[list[float]]:
-        """Not supported — Anthropic has no embeddings API.
+    async def generate_chat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float = 0.7,
+        max_tokens: int = 1024,
+    ) -> GenerationResult:
+        """Generate a completion from a full conversation history.
 
-        Raises ``ProviderUnavailableError`` immediately so the resilient service
+        Anthropic's Messages API uses a dedicated system parameter rather
+        than a system role inside the messages list. This method extracts
+        any leading system-role entry and passes it as the system kwarg;
+        the remaining user/assistant turns are forwarded as-is.
+        """
+        try:
+            return await self._do_generate_chat(
+                messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+        except _TRANSIENT as exc:
+            raise ProviderUnavailableError(
+                f"Anthropic transient error after retries: {exc}"
+            ) from exc
+        except anthropic.AnthropicError as exc:
+            raise ProviderUnavailableError(f"Anthropic chat call failed: {exc}") from exc
+
+    async def embed(self, text: str | list[str]) -> list[list[float]]:
+        """Not supported - Anthropic has no embeddings API.
+
+        Raises ProviderUnavailableError immediately so the resilient service
         or embedding service can fall through to a provider that does offer
         embeddings (OpenAI).
         """
@@ -107,6 +134,64 @@ class AnthropicProvider:
     # ------------------------------------------------------------------
     # Private retry-decorated helpers
     # ------------------------------------------------------------------
+
+    @_retry
+    async def _do_generate_chat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float,
+        max_tokens: int,
+    ) -> GenerationResult:
+        """Inner chat-history generation call wrapped by the tenacity retry decorator.
+
+        Splits the OpenAI-format messages list into a system string
+        (Anthropic's dedicated parameter) and the remaining conversation turns.
+        This keeps the protocol surface uniform across providers while honouring
+        the Anthropic API's structural requirement.
+        """
+        # Separate the system message (if present) from conversation turns.
+        # Anthropic requires user/assistant alternation and rejects "system" in messages.
+        system: str | None = None
+        conversation: list[dict[str, str]] = []
+        for msg in messages:
+            if msg.get("role") == "system":
+                system = msg.get("content", "")
+            else:
+                conversation.append(msg)
+
+        # Anthropic requires at least one user message.
+        if not conversation:
+            conversation = [{"role": "user", "content": "Hello"}]
+
+        log.debug(
+            "anthropic.generate_chat.attempt",
+            model=self.model,
+            n_turns=len(conversation),
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+        kwargs: dict[str, object] = {
+            "model": self.model,
+            "max_tokens": max_tokens,
+            "messages": conversation,
+            "temperature": temperature,
+        }
+        if system:
+            kwargs["system"] = system
+
+        response = await self._client.messages.create(**kwargs)  # type: ignore[call-overload]
+
+        text = response.content[0].text if response.content else ""
+        usage = response.usage
+        return GenerationResult(
+            text=text,
+            provider=self.name,
+            model=self.model,
+            prompt_tokens=usage.input_tokens if usage else None,
+            completion_tokens=usage.output_tokens if usage else None,
+        )
 
     @_retry
     async def _do_generate(
@@ -125,7 +210,7 @@ class AnthropicProvider:
             max_tokens=max_tokens,
         )
 
-        # Anthropic does not accept an empty string for ``system``.
+        # Anthropic does not accept an empty string for system.
         # Use NOT_GIVEN to omit the field entirely when no system prompt exists.
         kwargs: dict[str, object] = {
             "model": self.model,

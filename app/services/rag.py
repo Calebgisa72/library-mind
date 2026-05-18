@@ -168,6 +168,54 @@ class RAGService:
     # Public API
     # ------------------------------------------------------------------
 
+    async def retrieve_context(self, question: str) -> tuple[list[SourceCitation], str]:
+        """Embed *question*, search the vector store, and return grounding context.
+
+        This is the retrieval-only half of the RAG pipeline.  It embeds the
+        question, fetches the top-K candidates from ChromaDB, filters by the
+        relevance threshold, and returns the matched sources together with a
+        formatted context block ready to be injected into any prompt.
+
+        The :class:`ChatbotService` calls this method so it can ground the
+        conversation in catalogue data without re-implementing the embedding or
+        search logic.
+
+        Returns
+        -------
+        tuple[list[SourceCitation], str]
+            ``(sources, context_block)``.  Both are empty / empty-string when
+            no results pass the relevance threshold.
+
+        Notes
+        -----
+        This method does *not* apply the rate limiter — the caller decides
+        whether to gate the full flow.  The embedding call is cached by
+        :class:`~app.services.embedding.EmbeddingService` so repeated calls
+        with the same question are inexpensive.
+        """
+        vector = await self._embedding_service.embed_one(question)
+        candidates = self._vector_store.search(vector, top_k=self._settings.rag_top_k)
+        relevant = [r for r in candidates if r.score >= self._settings.rag_relevance_threshold]
+
+        if not relevant:
+            log.info(
+                "rag.retrieve_context.no_results",
+                retrieved=len(candidates),
+                threshold=self._settings.rag_relevance_threshold,
+            )
+            return [], ""
+
+        sources = [
+            SourceCitation(
+                title=str(r.metadata.get("title", "Unknown title")),
+                author=str(r.metadata.get("author", "Unknown author")),
+                score=r.score,
+            )
+            for r in relevant
+        ]
+        context_block = format_context(relevant)
+        return sources, context_block
+
     async def answer(self, question: str) -> RAGAnswer:
         """Answer *question* using catalogue context.
 
@@ -194,19 +242,11 @@ class RAGService:
         log.info("rag.cache_miss")
         await self._rate_limiter.acquire()
 
-        vector = await self._embedding_service.embed_one(question)
-        candidates = self._vector_store.search(vector, top_k=self._settings.rag_top_k)
+        sources, context_block = await self.retrieve_context(question)
 
-        relevant = [r for r in candidates if r.score >= self._settings.rag_relevance_threshold]
-        if not relevant:
-            log.info(
-                "rag.no_relevant_results",
-                retrieved=len(candidates),
-                threshold=self._settings.rag_relevance_threshold,
-            )
+        if not sources:
             return RAGAnswer(answer=REFUSAL_MESSAGE, sources=[], cached=False, avg_relevance=0.0)
 
-        context_block = format_context(relevant)
         user_prompt = self._build_user_prompt(question, context_block)
 
         result = await self._ai_service.generate(
@@ -224,14 +264,6 @@ class RAGService:
             completion_tokens=result.completion_tokens or 0,
         )
 
-        sources = [
-            SourceCitation(
-                title=str(r.metadata.get("title", "Unknown title")),
-                author=str(r.metadata.get("author", "Unknown author")),
-                score=r.score,
-            )
-            for r in relevant
-        ]
         avg_relevance = sum(s.score for s in sources) / len(sources)
 
         answer = RAGAnswer(
