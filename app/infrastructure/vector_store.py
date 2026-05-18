@@ -144,7 +144,7 @@ class VectorStore:
         results = self._collection.query(
             query_embeddings=[embedding],  # type: ignore[arg-type]
             n_results=min(top_k, self._collection.count() or 1),
-            include=["distances", "metadatas"], # type: ignore
+            include=["distances", "metadatas"],  # type: ignore
         )
 
         ids: list[str] = results["ids"][0]
