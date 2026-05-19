@@ -49,8 +49,8 @@ The project is delivered in phases. Each phase is gated on review before the nex
 | 3     | Knowledge base + embeddings + vector store               | ✅ complete     |
 | 4     | RAG engine                                               | ✅ complete     |
 | 5     | AI librarian chatbot                                     | ✅ complete     |
-| 6     | Ticket classification + review summarisation             | ✅ complete      |
-| 7     | REST API + endpoint wiring                               | ⏳ pending      |
+| 6     | Ticket classification + review summarisation             | ✅ complete     |
+| 7     | REST API + endpoint wiring                               | ✅ complete     |
 | 8     | Smoke tests, validation, reflection                      | ⏳ pending      |
 
 ## Quick start
