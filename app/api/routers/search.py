@@ -60,7 +60,11 @@ async def search_books(
             id=r.id,
             title=str(r.metadata.get("title", "")),
             author=str(r.metadata.get("author", "")),
-            year=int(r.metadata.get("year", 0)),
+            year=(
+                int(r.metadata.get("year", 0))
+                if isinstance(r.metadata.get("year"), int | str)
+                else 0
+            ),
             genre=str(r.metadata.get("genre", "")),
             score=r.score,
         )
