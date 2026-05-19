@@ -13,7 +13,7 @@ for the full rationale.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 import chromadb
 
@@ -106,9 +106,9 @@ class VectorStore:
         """
         self._collection.upsert(
             ids=ids,
-            embeddings=embeddings,  # type: ignore[arg-type]
+            embeddings=cast(Any, embeddings),
             documents=documents,
-            metadatas=metadatas,  # type: ignore[arg-type]
+            metadatas=cast(Any, metadatas),
         )
         log.info("vector_store.upsert", count=len(ids))
 
@@ -141,15 +141,16 @@ class VectorStore:
             Results sorted by similarity descending (most relevant first).
             May be shorter than *top_k* if the collection has fewer entries.
         """
-        results = self._collection.query(
-            query_embeddings=[embedding],  # type: ignore[arg-type]
+        raw = self._collection.query(
+            query_embeddings=cast(Any, [embedding]),
             n_results=min(top_k, self._collection.count() or 1),
-            include=["distances", "metadatas"],  # type: ignore
+            include=cast(Any, ["distances", "metadatas"]),
         )
+        results: dict[str, Any] = cast(Any, raw)
 
         ids: list[str] = results["ids"][0]
-        distances: list[float] = results["distances"][0]  # type: ignore[index]
-        metadatas: list[dict[str, Any]] = results["metadatas"][0]  # type: ignore[index, assignment]
+        distances: list[float] = results["distances"][0]
+        metadatas: list[dict[str, Any]] = results["metadatas"][0]
 
         search_results: list[SearchResult] = []
         for book_id, distance, metadata in zip(ids, distances, metadatas, strict=False):
