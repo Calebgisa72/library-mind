@@ -51,7 +51,7 @@ The project is delivered in phases. Each phase is gated on review before the nex
 | 5     | AI librarian chatbot                                     | ✅ complete     |
 | 6     | Ticket classification + review summarisation             | ✅ complete     |
 | 7     | REST API + endpoint wiring                               | ✅ complete     |
-| 8     | Smoke tests, validation, reflection                      | ⏳ pending      |
+| 8     | Smoke tests, validation, reflection                      | ✅ complete     |
 
 ## Quick start
 
