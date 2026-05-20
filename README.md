@@ -183,6 +183,31 @@ The test suite grows phase by phase and is consolidated in Phase 8. Phases 0–2
 | `python -m scripts.seed_vector_store`            | Phase 3+: reads `app/data/books.json`, embeds each book, upserts into ChromaDB. |
 | `python -m scripts.smoke_test`                   | Phase 8: end-to-end smoke test against a running server (10 lab scenarios). |
 
+### Smoke test
+
+The smoke test validates every Part 8 scenario against a live server. Run it after starting
+the application:
+
+```bash
+# Terminal 1 (venv active) — start the server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Terminal 2 (venv active) — run the smoke test
+python -m scripts.smoke_test
+```
+
+The script exits **0** when all 10 scenarios pass, **1** when any fail. It prints a
+colour-coded pass/fail table to stdout. The base URL can be overridden:
+
+```bash
+LIBRARYMIND_BASE_URL=http://localhost:8000 python -m scripts.smoke_test
+```
+
+**Scenario 10 (provider fallback)** is partially automated: the smoke test verifies that
+≥2 providers are configured in `/health`. The actual live-failover test (setting the primary
+key to an invalid value and confirming the fallback provider responds) requires a server
+restart with a modified `.env`; see *Troubleshooting* for instructions.
+
 ### Docker
 
 Docker Desktop on Windows and Docker Engine on Linux/macOS both ship the `docker` and `docker compose` commands natively — these commands are platform-identical and **do not** require the venv.
