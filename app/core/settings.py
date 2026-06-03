@@ -57,8 +57,13 @@ class Settings(BaseSettings):
     anthropic_chat_model: str = "claude-3-5-haiku-latest"
 
     amaliai_api_key: str | None = None
-    amaliai_base_url: str = "https://api.amalitech.org/v1"
-    amaliai_chat_model: str = ""
+    amaliai_base_url: str = "https://ai-api.amalitech.org/api/v2/public/v1"
+    amaliai_chat_model: str = "gpt-3.5-turbo"
+    amaliai_embedding_model: str = "text-embedding-3-small"
+    # Which upstream the AmaliAI gateway proxies to. Sent as the `Provider`
+    # header on every request. OpenAI is primary because it is the only
+    # provider that exposes an embeddings endpoint (needed by /search/books).
+    amaliai_provider: Literal["openai", "anthropic"] = "openai"
 
     # ── Vector store ────────────────────────────────────────────────────────
     chroma_persist_dir: str = "./data/chroma"

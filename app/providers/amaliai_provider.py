@@ -1,26 +1,25 @@
 """AmaliAI concrete AI provider.
 
-AmaliAI exposes an OpenAI-compatible HTTP API, so we drive it with
-``httpx.AsyncClient`` rather than a vendor SDK (no such SDK exists).
+AmaliAI is a **gateway/proxy** in front of OpenAI and Anthropic, exposing an
+OpenAI-compatible request/response shape at ``/api/v2/public/v1``. It does NOT
+use OpenAI-style ``Authorization: Bearer`` auth: requests authenticate with an
+``X-Api-Key`` header and name the upstream via a ``Provider`` header
+(``openai`` or ``anthropic``). This mirrors the working sibling project.
+
+We drive it with ``httpx.AsyncClient`` rather than a vendor SDK (so the same
+class can serve chat and embeddings without pulling in the OpenAI package).
 
 Endpoints used
 --------------
-* ``POST /chat/completions`` — text generation (OpenAI-compatible request/response).
-* ``POST /embeddings`` — vector embeddings (OpenAI-compatible).
+* ``POST /chat/completions`` -- text generation (OpenAI-compatible).
+* ``POST /embeddings`` -- vector embeddings (OpenAI-compatible). Embeddings
+  are only served by the OpenAI upstream; Anthropic has no embeddings API.
 
 Retry policy
 ------------
 The inner methods raise ``ProviderUnavailableError`` for 429 and 5xx responses,
-making those HTTP statuses retryable via the tenacity decorator (which catches
-``ProviderUnavailableError`` as a transient error, alongside network-level
-exceptions).  4xx errors that are *not* 429 indicate a permanent client-side
-problem (bad request, auth) and propagate immediately.
-
-Error mapping
--------------
-* 429 / 5xx → ``ProviderUnavailableError`` (transient, retryable)
-* httpx.TimeoutException / httpx.ConnectError → same (transient, retryable)
-* Other 4xx → ``ProviderUnavailableError`` (non-transient, propagates)
+making those HTTP statuses retryable via the tenacity decorator. 4xx errors
+that are *not* 429 indicate a permanent client-side problem and propagate.
 """
 
 from __future__ import annotations
@@ -34,9 +33,6 @@ from app.providers.retry import build_provider_retry
 
 log = get_logger(__name__)
 
-# Transient errors: our own "service unavailable" plus low-level network
-# failures.  HTTP 4xx client errors are NOT included — they indicate a
-# permanent problem (wrong model name, auth failure) and should not be retried.
 _TRANSIENT = (
     ProviderUnavailableError,
     httpx.TimeoutException,
@@ -45,27 +41,34 @@ _TRANSIENT = (
 
 _retry = build_provider_retry(_TRANSIENT)
 
-# HTTP status codes that signal a transient server-side problem.
 _RETRYABLE_STATUSES = frozenset({429, 500, 502, 503, 504})
 
 
 class AmaliAIProvider:
-    """AI provider backed by the AmaliAI OpenAI-compatible HTTP API.
+    """AI provider backed by the AmaliAI OpenAI-compatible gateway.
 
     Parameters
     ----------
     api_key:
-        AmaliAI credentials.  Loaded from settings; never hard-coded.
+        AmaliAI credentials. Loaded from settings; never hard-coded.
     base_url:
-        API root, e.g. ``"https://api.amalitech.org/v1"``.
+        API root, e.g. ``"https://ai-api.amalitech.org/api/v2/public/v1"``.
     chat_model:
-        Model identifier for chat completions.  Must be non-empty.
+        Model identifier for chat completions. Must be non-empty.
     embedding_model:
-        Model identifier for embeddings.  Defaults to the chat model when
-        the API exposes a unified model endpoint.
+        Model identifier for embeddings. Defaults to the chat model.
+    provider:
+        Upstream the gateway proxies to ("openai" or "anthropic"), sent as
+        the ``Provider`` request header. Defaults to ``"openai"`` because
+        only OpenAI exposes an embeddings endpoint.
     client:
-        Optional pre-constructed ``httpx.AsyncClient``.  Inject in tests to
-        avoid real HTTP calls.
+        Optional pre-constructed ``httpx.AsyncClient`` (inject in tests).
+
+    Authentication
+    --------------
+    The gateway authenticates with an ``X-Api-Key`` header (NOT
+    ``Authorization: Bearer``) and requires a ``Provider`` header naming the
+    upstream. Both are set on the shared client below.
     """
 
     name: str = "amaliai"
@@ -77,15 +80,18 @@ class AmaliAIProvider:
         base_url: str,
         chat_model: str,
         embedding_model: str = "",
+        provider: str = "openai",
         client: httpx.AsyncClient | None = None,
     ) -> None:
         self.model = chat_model
         self._embedding_model = embedding_model or chat_model
         self._api_key = api_key
+        self._provider = provider
         self._client = client or httpx.AsyncClient(
             base_url=base_url,
             headers={
-                "Authorization": f"Bearer {api_key}",
+                "X-Api-Key": api_key,
+                "Provider": provider,
                 "Content-Type": "application/json",
             },
             timeout=httpx.Timeout(30.0),
@@ -103,15 +109,11 @@ class AmaliAIProvider:
         temperature: float = 0.7,
         max_tokens: int = 1024,
     ) -> GenerationResult:
-        """Generate a chat completion via the AmaliAI API.
-
-        Raises ``ProviderUnavailableError`` when the chat model is not
-        configured (empty string) to fail fast rather than sending a
-        malformed request.
-        """
+        """Generate a chat completion via the AmaliAI API."""
         if not self.model:
             raise ProviderUnavailableError(
-                "AmaliAI chat model is not configured. " "Set AMALIAI_CHAT_MODEL in your .env file."
+                "AmaliAI chat model is not configured. "
+                "Set AMALIAI_CHAT_MODEL in your .env file."
             )
         try:
             return await self._do_generate(
@@ -134,14 +136,11 @@ class AmaliAIProvider:
         temperature: float = 0.7,
         max_tokens: int = 1024,
     ) -> GenerationResult:
-        """Generate a completion from a full conversation history via AmaliAI.
-
-        AmaliAI exposes an OpenAI-compatible API, so the messages list is
-        forwarded as-is to ``POST /chat/completions``.
-        """
+        """Generate a completion from a full conversation history via AmaliAI."""
         if not self.model:
             raise ProviderUnavailableError(
-                "AmaliAI chat model is not configured. " "Set AMALIAI_CHAT_MODEL in your .env file."
+                "AmaliAI chat model is not configured. "
+                "Set AMALIAI_CHAT_MODEL in your .env file."
             )
         try:
             return await self._do_generate_chat(
@@ -182,7 +181,7 @@ class AmaliAIProvider:
         temperature: float,
         max_tokens: int,
     ) -> GenerationResult:
-        """Inner generate call — raises ProviderUnavailableError on 429/5xx."""
+        """Inner generate call -- raises ProviderUnavailableError on 429/5xx."""
         messages: list[dict[str, str]] = []
         if system:
             messages.append({"role": "system", "content": system})
@@ -206,7 +205,6 @@ class AmaliAIProvider:
         )
 
         if response.status_code in _RETRYABLE_STATUSES:
-            # Raise our own domain exception so the tenacity decorator retries.
             raise ProviderUnavailableError(f"AmaliAI returned HTTP {response.status_code}")
 
         response.raise_for_status()
@@ -230,7 +228,7 @@ class AmaliAIProvider:
         temperature: float,
         max_tokens: int,
     ) -> GenerationResult:
-        """Inner chat-history generation call — raises ProviderUnavailableError on 429/5xx."""
+        """Inner chat-history generation call -- raises on 429/5xx."""
         log.debug(
             "amaliai.generate_chat.attempt",
             model=self.model,
@@ -267,7 +265,7 @@ class AmaliAIProvider:
 
     @_retry
     async def _do_embed(self, text: str | list[str]) -> list[list[float]]:
-        """Inner embed call — raises ProviderUnavailableError on 429/5xx."""
+        """Inner embed call -- raises ProviderUnavailableError on 429/5xx."""
         texts = [text] if isinstance(text, str) else list(text)
 
         log.debug(

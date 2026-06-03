@@ -102,6 +102,8 @@ class ResilientAIService:
                         api_key=settings.amaliai_api_key,
                         base_url=settings.amaliai_base_url,
                         chat_model=settings.amaliai_chat_model,
+                        embedding_model=settings.amaliai_embedding_model,
+                        provider=settings.amaliai_provider,
                     )
                 )
 

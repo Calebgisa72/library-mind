@@ -62,7 +62,7 @@ async def _seed() -> None:
     embedding_service = EmbeddingService(
         ai_service=ai_service,
         cache=cache,
-        model=settings.openai_embedding_model,
+        model=settings.amaliai_embedding_model,
     )
     vector_store = VectorStore(settings=settings)
 
