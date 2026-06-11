@@ -1,0 +1,17 @@
+# Keep the frontend build context small.
+node_modules
+.next
+out
+
+# Local env files — NEXT_PUBLIC_API_BASE_URL is passed as a build arg instead.
+.env*
+!.env.local.example
+
+# Tooling / misc
+.git
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+npm-debug.log*
+.DS_Store

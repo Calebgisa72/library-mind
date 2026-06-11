@@ -55,6 +55,51 @@ The project is delivered in phases. Each phase is gated on review before the nex
 
 ## Quick start
 
+### Quick start (Docker — recommended)
+
+The fastest way to run the **entire stack** — frontend, backend API, and Redis — with one command. ChromaDB runs embedded inside the API container and persists to a named volume. Requirements: [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows/macOS) or Docker Engine + Compose v2 (Linux), and an internet connection for the first build.
+
+```bash
+# 1. Clone the repository and enter it
+git clone https://github.com/calebgisa/library-mind.git
+cd library-mind
+
+# 2. Copy the environment template and add at least one provider API key
+cp .env.example .env
+# (Windows PowerShell: Copy-Item .env.example .env)
+
+# 3. Build and start everything (frontend + api + redis)
+docker compose up --build -d
+
+# 4. Seed the book catalogue into ChromaDB (one-off; re-run when books.json changes)
+docker compose --profile seed run --rm seed
+
+# 5. Check that everything is healthy
+docker compose ps
+```
+
+Once the containers are up:
+
+| Service       | URL                          | Notes                                   |
+|---------------|------------------------------|-----------------------------------------|
+| Frontend      | http://localhost:3000        | Next.js web client (all features)       |
+| API           | http://localhost:8000        | FastAPI backend                         |
+| Swagger UI    | http://localhost:8000/docs   | Interactive API docs                    |
+| Health check  | http://localhost:8000/health | Provider, cache, and spend status       |
+| Redis         | localhost:6379               | Cache / rate-limiter backing store      |
+
+Stop with `docker compose down` (keeps ChromaDB + Redis data) or `docker compose down -v` (wipes all data — you'll need to re-seed).
+
+**Development mode** (hot reload for both backend and frontend — source is bind-mounted, no rebuild needed on code changes):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
+> **Note:** the frontend image inlines `NEXT_PUBLIC_API_BASE_URL` at *build* time (default `http://localhost:8000`). If your API is exposed on a different host/port, rebuild with `NEXT_PUBLIC_API_BASE_URL=<browser-facing-api-url> docker compose up --build -d`.
+
+### Quick start (manual)
+
 ```bash
 # 1. Clone the repository and enter it
 git clone https://github.com/calebgisa/library-mind.git
@@ -73,6 +118,11 @@ pre-commit install --install-hooks
 
 # 4. Run the API
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# 5. (Optional) Run the frontend in a second terminal
+cd frontend
+npm install
+npm run dev   # → http://localhost:3000
 ```
 
 The API will be running on `http://localhost:8000`. Swagger UI is at `/docs`, ReDoc at `/redoc`.
@@ -212,17 +262,19 @@ restart with a modified `.env`; see *Troubleshooting* for instructions.
 
 Docker Desktop on Windows and Docker Engine on Linux/macOS both ship the `docker` and `docker compose` commands natively — these commands are platform-identical and **do not** require the venv.
 
-| Command                              | What it does                                                                        |
-|--------------------------------------|-------------------------------------------------------------------------------------|
-| `docker compose up --build -d`       | Builds the API image and starts both services (`api` + `redis`) in the background.  |
-| `docker compose ps`                  | Shows the status of both services.                                                  |
-| `docker compose logs -f`             | Tails the combined logs of both services until you press Ctrl-C.                    |
-| `docker compose logs -f api`         | Tails only the API service logs.                                                    |
-| `docker compose down`                | Stops both services but keeps their volumes (ChromaDB data persists).               |
-| `docker compose down -v`             | Stops both services **and removes volumes** — ChromaDB and Redis are wiped clean.   |
-| `docker compose build --no-cache`    | Rebuilds the API image from scratch (use after dependency or Dockerfile changes).   |
+| Command                                                                | What it does                                                                          |
+|------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| `docker compose up --build -d`                                         | Builds and starts the full stack (`frontend` + `api` + `redis`) in the background.    |
+| `docker compose --profile seed run --rm seed`                          | One-off job: embeds `app/data/books.json` and upserts it into ChromaDB.               |
+| `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build` | Development mode: bind-mounted source with hot reload for backend **and** frontend. |
+| `docker compose ps`                                                    | Shows the status and health of all services.                                          |
+| `docker compose logs -f`                                               | Tails the combined logs of all services until you press Ctrl-C.                       |
+| `docker compose logs -f api`                                           | Tails only the API service logs (`frontend` / `redis` work the same way).             |
+| `docker compose down`                                                  | Stops all services but keeps their volumes (ChromaDB + Redis data persist).           |
+| `docker compose down -v`                                               | Stops all services **and removes volumes** — ChromaDB and Redis are wiped clean.      |
+| `docker compose build --no-cache`                                      | Rebuilds all images from scratch (use after dependency or Dockerfile changes).        |
 
-The compose file mounts the source tree read-only so uvicorn's `--reload` picks up code changes without rebuilding the image.
+In development mode the backend source is mounted read-only so uvicorn's `--reload` picks up code changes, and the frontend runs `next dev` with file-watch polling (required on Docker Desktop). The production-style default (`docker-compose.yml` alone) runs the optimised images: a self-contained Python venv for the API and Next.js standalone output for the frontend, both as non-root users.
 
 ### Housekeeping
 
@@ -310,10 +362,11 @@ library-mind/
 ├── scripts/              # Seeding & smoke tests
 ├── tests/                # Pytest suite
 ├── docs/                 # PRD, ERD, API reference, architecture, CI guide
-├── frontend/             # Placeholder for future React client
+├── frontend/             # Next.js 14 web client (own Dockerfile inside)
 ├── .github/workflows/    # CI (currently disabled — see docs/CI.md)
-├── docker-compose.yml    # api + redis dev stack
-├── Dockerfile            # Multi-stage build
+├── docker-compose.yml    # Full stack: frontend + api + redis (+ seed profile)
+├── docker-compose.dev.yml# Dev override: hot reload for backend & frontend
+├── Dockerfile            # Multi-stage backend build
 ├── pyproject.toml        # Deps, lint, type, test config
 ├── .env.example          # Documented configuration template
 └── README.md             # You are here

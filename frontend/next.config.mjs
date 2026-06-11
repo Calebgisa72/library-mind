@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Emit a self-contained server bundle (.next/standalone) so the Docker
+  // runtime image needs neither node_modules nor the Next.js CLI.
+  output: "standalone",
   // The frontend talks to the FastAPI backend over CORS in development.
   // In production you can proxy /api/* to the backend by configuring rewrites.
   async rewrites() {
