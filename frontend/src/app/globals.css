@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  LibraryMind design system.
+  Primary brand color is a deep, confident orange (#E8590C ≈ hsl(21 90% 48%)).
+  All semantic tokens are HSL channel triplets so Tailwind can compose them
+  with opacity modifiers (e.g. `bg-primary/10`).
+*/
+
+@layer base {
+  :root {
+    --background: 30 33% 99%;
+    --foreground: 24 14% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 24 14% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 14% 12%;
+
+    --primary: 21 90% 48%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 28 22% 95%;
+    --secondary-foreground: 24 20% 18%;
+
+    --muted: 30 16% 96%;
+    --muted-foreground: 25 8% 42%;
+
+    --accent: 24 90% 95%;
+    --accent-foreground: 21 80% 32%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 62% 38%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 30 40% 12%;
+
+    --border: 28 20% 90%;
+    --input: 28 20% 90%;
+    --ring: 21 90% 48%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 24 14% 8%;
+    --foreground: 30 14% 92%;
+
+    --card: 24 13% 11%;
+    --card-foreground: 30 14% 92%;
+
+    --popover: 24 13% 11%;
+    --popover-foreground: 30 14% 92%;
+
+    --primary: 22 92% 54%;
+    --primary-foreground: 24 35% 8%;
+
+    --secondary: 24 10% 17%;
+    --secondary-foreground: 30 14% 90%;
+
+    --muted: 24 10% 16%;
+    --muted-foreground: 28 9% 62%;
+
+    --accent: 24 40% 18%;
+    --accent-foreground: 24 90% 78%;
+
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 55% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 90% 56%;
+    --warning-foreground: 30 40% 10%;
+
+    --border: 24 10% 21%;
+    --input: 24 10% 22%;
+    --ring: 22 92% 54%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  /* A soft branded backdrop wash that adapts to theme. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(60rem 40rem at 100% -10%, hsl(var(--primary) / 0.07), transparent 60%),
+      radial-gradient(50rem 40rem at -10% 110%, hsl(var(--primary) / 0.05), transparent 60%);
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 9999px;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+}
