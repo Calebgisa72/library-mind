@@ -30,6 +30,7 @@ from app.core.exceptions import ProviderUnavailableError
 from app.core.logging import get_logger
 from app.providers.base import GenerationResult
 from app.providers.retry import build_provider_retry
+from app.providers.tokens import count_messages_tokens, count_text_tokens
 
 log = get_logger(__name__)
 
@@ -211,13 +212,22 @@ class AmaliAIProvider:
         data = response.json()
 
         text: str = data["choices"][0]["message"]["content"] or ""
-        usage = data.get("usage", {})
+        usage = data.get("usage") or {}
+        prompt_tokens = usage.get("prompt_tokens")
+        completion_tokens = usage.get("completion_tokens")
+        # The AmaliAI gateway does not always echo a usage object. When token
+        # counts are missing, count them locally with tiktoken so the call is
+        # still billed correctly -- matching the SDK providers that report usage.
+        if prompt_tokens is None:
+            prompt_tokens = count_messages_tokens(messages, self.model)
+        if completion_tokens is None:
+            completion_tokens = count_text_tokens(text, self.model)
         return GenerationResult(
             text=text,
             provider=self.name,
             model=self.model,
-            prompt_tokens=usage.get("prompt_tokens"),
-            completion_tokens=usage.get("completion_tokens"),
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
         )
 
     @_retry
@@ -254,13 +264,22 @@ class AmaliAIProvider:
         data = response.json()
 
         text: str = data["choices"][0]["message"]["content"] or ""
-        usage = data.get("usage", {})
+        usage = data.get("usage") or {}
+        prompt_tokens = usage.get("prompt_tokens")
+        completion_tokens = usage.get("completion_tokens")
+        # The AmaliAI gateway does not always echo a usage object. When token
+        # counts are missing, count them locally with tiktoken so the call is
+        # still billed correctly -- matching the SDK providers that report usage.
+        if prompt_tokens is None:
+            prompt_tokens = count_messages_tokens(messages, self.model)
+        if completion_tokens is None:
+            completion_tokens = count_text_tokens(text, self.model)
         return GenerationResult(
             text=text,
             provider=self.name,
             model=self.model,
-            prompt_tokens=usage.get("prompt_tokens"),
-            completion_tokens=usage.get("completion_tokens"),
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
         )
 
     @_retry

@@ -13,7 +13,8 @@ Design notes
   intermediate layer mutates the result on its way up the stack.
 * prompt_tokens / completion_tokens are int | None because not every provider
   reports usage on every call (some streaming modes omit it).
-  Phase 2's UsageTracker handles the None case with a tiktoken fallback.
+  Providers that omit usage (the AmaliAI gateway) fill the None case with a
+  tiktoken-based count; see app.providers.tokens.
 """
 
 from __future__ import annotations
@@ -143,9 +144,10 @@ class AIProvider(Protocol):
 class GenerationResult:
     """Immutable record of a single completed generation call.
 
-    prompt_tokens and completion_tokens are None when the underlying provider
-    did not report usage (rare but possible). The UsageTracker in Phase 2
-    will fall back to tiktoken in that case.
+    prompt_tokens and completion_tokens are None only when a provider neither
+    reports usage nor counts tokens locally. The AmaliAI provider backfills
+    missing counts via tiktoken (app.providers.tokens), so cost tracking
+    works uniformly across providers.
     """
 
     text: str

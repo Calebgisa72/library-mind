@@ -177,3 +177,58 @@ class TestAmaliAIProviderEmbed:
 
         result = await provider.embed("single")
         assert result == [[1.0, 2.0]]
+
+
+class TestAmaliAIUsageFallback:
+    """When the gateway omits a usage object, tokens must be counted locally
+    so the call is still billed (parity with the SDK providers)."""
+
+    async def test_generate_without_usage_still_reports_tokens(
+        self, provider: AmaliAIProvider
+    ) -> None:
+        # Response shaped like a gateway reply that omits "usage" entirely.
+        no_usage = {"choices": [{"message": {"content": "A fine recommendation."}}]}
+        provider._client.post = AsyncMock(  # type: ignore[method-assign]
+            return_value=_make_httpx_response(200, no_usage)
+        )
+
+        result = await provider.generate("Recommend a thriller.")
+
+        assert isinstance(result, GenerationResult)
+        assert result.text == "A fine recommendation."
+        # The whole point: counts are populated (non-zero), not None/0.
+        assert isinstance(result.prompt_tokens, int) and result.prompt_tokens > 0
+        assert isinstance(result.completion_tokens, int) and result.completion_tokens > 0
+
+    async def test_generate_chat_without_usage_still_reports_tokens(
+        self, provider: AmaliAIProvider
+    ) -> None:
+        no_usage = {"choices": [{"message": {"content": "Here is more detail."}}]}
+        provider._client.post = AsyncMock(  # type: ignore[method-assign]
+            return_value=_make_httpx_response(200, no_usage)
+        )
+
+        messages = [
+            {"role": "system", "content": "You are a librarian."},
+            {"role": "user", "content": "Tell me more about that one."},
+        ]
+        result = await provider.generate_chat(messages)
+
+        assert result.prompt_tokens is not None and result.prompt_tokens > 0
+        assert result.completion_tokens is not None and result.completion_tokens > 0
+
+    async def test_reported_usage_takes_precedence_over_fallback(
+        self, provider: AmaliAIProvider
+    ) -> None:
+        # When the gateway DOES report usage, those exact numbers are used
+        # (the local fallback must not override real provider counts).
+        provider._client.post = AsyncMock(  # type: ignore[method-assign]
+            return_value=_make_httpx_response(
+                200, _chat_response("ok", prompt_tokens=11, completion_tokens=7)
+            )
+        )
+
+        result = await provider.generate("hello")
+
+        assert result.prompt_tokens == 11
+        assert result.completion_tokens == 7
