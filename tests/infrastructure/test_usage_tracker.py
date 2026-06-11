@@ -89,6 +89,45 @@ class TestUsageTrackerRecord:
         )
         assert rec.cost_usd == 0.0
 
+    def test_amaliai_priced_like_openai_for_same_chat_model(self) -> None:
+        """AmaliAI proxies to OpenAI, so it must be billed at OpenAI rates.
+
+        prompt=100, completion=50, model=gpt-4o-mini
+        cost = 100/1000*0.00015 + 50/1000*0.0006 = 0.000045 (same as OpenAI).
+        """
+        tracker = UsageTracker()
+        amaliai = tracker.record(
+            provider="amaliai",
+            model="gpt-4o-mini",
+            operation="generate",
+            prompt_tokens=100,
+            completion_tokens=50,
+        )
+        openai = tracker.record(
+            provider="openai",
+            model="gpt-4o-mini",
+            operation="generate",
+            prompt_tokens=100,
+            completion_tokens=50,
+        )
+        assert abs(amaliai.cost_usd - 0.000045) < 1e-10
+        assert amaliai.cost_usd == openai.cost_usd
+        assert amaliai.cost_usd > 0.0
+
+    def test_amaliai_priced_like_openai_for_embeddings(self) -> None:
+        """AmaliAI embedding calls are billed at OpenAI embedding rates."""
+        tracker = UsageTracker()
+        rec = tracker.record(
+            provider="amaliai",
+            model="text-embedding-3-small",
+            operation="embed",
+            prompt_tokens=1000,
+            completion_tokens=0,
+        )
+        # 1000/1000 * 0.00002 = 0.00002 (same as OpenAI).
+        assert abs(rec.cost_usd - 0.00002) < 1e-10
+        assert rec.cost_usd > 0.0
+
     def test_record_stores_in_memory(self) -> None:
         tracker = UsageTracker()
         assert len(tracker.all_records()) == 0

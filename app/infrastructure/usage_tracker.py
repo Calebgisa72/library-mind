@@ -8,10 +8,14 @@ consumed by the ``/health`` endpoint.
 Pricing table
 -------------
 ``PRICING`` maps ``(provider, model)`` to ``(input_usd_per_1k,
-output_usd_per_1k)``.  Only models actually used by this lab are listed;
-unknown models default to ``(0.0, 0.0)`` (free / unknown).  Update the
-table when vendor prices change -- it is the single place in the codebase
-where pricing lives.
+output_usd_per_1k)``.  Only models actually used by this lab are listed.
+AmaliAI is an OpenAI-compatible gateway that proxies to OpenAI, so AmaliAI
+calls are billed at OpenAI's per-model rates: :meth:`UsageTracker.record`
+normalises the provider ``"amaliai" -> "openai"`` before the price lookup,
+so an AmaliAI ``gpt-4o-mini`` call costs exactly what an OpenAI
+``gpt-4o-mini`` call costs.  Genuinely unknown ``(provider, model)`` pairs
+still default to ``(0.0, 0.0)``.  Update the table when vendor prices change
+-- it is the single place in the codebase where pricing lives.
 
 Token counting
 --------------
@@ -50,8 +54,9 @@ PRICING: dict[tuple[str, str], tuple[float, float]] = {
     ("anthropic", "claude-3-5-haiku-latest"): (0.0008, 0.004),
     ("anthropic", "claude-3-5-sonnet-latest"): (0.003, 0.015),
     ("anthropic", "claude-3-haiku-20240307"): (0.00025, 0.00125),
-    # AmaliAI: training credits -- billed at $0 for lab purposes.
-    # Add a real entry here if the provider publishes a price.
+    # AmaliAI: an OpenAI-compatible gateway that proxies to OpenAI. It needs no
+    # entries of its own -- record() normalises "amaliai" -> "openai" so it is
+    # billed at the OpenAI rates above (e.g. gpt-4o-mini, text-embedding-3-small).
 }
 
 
@@ -125,9 +130,11 @@ class UsageTracker:
     ) -> UsageRecord:
         """Create a :class:`UsageRecord`, log it, and store it in memory.
 
-        Cost is computed from :data:`PRICING`.  Models not in the table
-        are silently recorded at ``$0.00`` so unknown providers (e.g.
-        AmaliAI training credits) do not break the tracker.
+        Cost is computed from :data:`PRICING`.  AmaliAI calls are priced
+        using OpenAI's rates (the provider is normalised ``"amaliai" ->
+        "openai"`` because AmaliAI is an OpenAI-compatible gateway).  A
+        genuinely unknown ``(provider, model)`` pair is recorded at
+        ``$0.00`` so it never breaks the tracker.
 
         Parameters
         ----------
@@ -147,7 +154,12 @@ class UsageTracker:
         UsageRecord
             The newly created, appended record.
         """
-        input_per_1k, output_per_1k = PRICING.get((provider, model), (0.0, 0.0))
+        # AmaliAI proxies to OpenAI, so bill it at OpenAI's per-model rates
+        # rather than treating it as an unknown (free) provider.
+        pricing_provider = "openai" if provider == "amaliai" else provider
+        input_per_1k, output_per_1k = PRICING.get(
+            (pricing_provider, model), (0.0, 0.0)
+        )
         cost = (prompt_tokens / 1000.0) * input_per_1k + (
             completion_tokens / 1000.0
         ) * output_per_1k
