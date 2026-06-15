@@ -24,6 +24,7 @@ from __future__ import annotations
 from app.core.exceptions import AllProvidersFailedError, ProviderError
 from app.core.logging import get_logger
 from app.core.settings import Settings
+from app.infrastructure.usage_tracker import UsageTracker
 from app.providers.base import AIProvider, GenerationResult
 
 log = get_logger(__name__)
@@ -48,21 +49,55 @@ class ResilientAIService:
         primary provider; subsequent entries are fallbacks.
     """
 
-    def __init__(self, *, providers: list[AIProvider]) -> None:
+    def __init__(
+        self,
+        *,
+        providers: list[AIProvider],
+        usage_tracker: UsageTracker | None = None,
+    ) -> None:
         if not providers:
             raise ValueError("ResilientAIService requires at least one provider.")
         self._providers = providers
+        # Optional usage tracker. When supplied, every successful call is
+        # recorded here -- this is the single chokepoint all AI calls pass
+        # through, so recording here guarantees no path is missed.
+        self._usage_tracker = usage_tracker
         # Expose name and model from the primary provider so this class
         # looks like a regular AIProvider to callers.
         self.name: str = providers[0].name
         self.model: str = providers[0].model
+
+    def _record_usage(
+        self,
+        *,
+        provider: str,
+        model: str,
+        operation: str,
+        prompt_tokens: int | None,
+        completion_tokens: int | None,
+    ) -> None:
+        """Record a usage entry if a tracker is configured (best-effort)."""
+        if self._usage_tracker is None:
+            return
+        self._usage_tracker.record(
+            provider=provider,
+            model=model,
+            operation=operation,
+            prompt_tokens=prompt_tokens or 0,
+            completion_tokens=completion_tokens or 0,
+        )
 
     # ------------------------------------------------------------------
     # Factory
     # ------------------------------------------------------------------
 
     @classmethod
-    def from_settings(cls, settings: Settings) -> ResilientAIService:
+    def from_settings(
+        cls,
+        settings: Settings,
+        *,
+        usage_tracker: UsageTracker | None = None,
+    ) -> ResilientAIService:
         """Build a ResilientAIService from application settings.
 
         Providers are instantiated in the order returned by
@@ -113,7 +148,7 @@ class ResilientAIService:
                 "Check that at least one provider key is configured."
             )
 
-        return cls(providers=providers)
+        return cls(providers=providers, usage_tracker=usage_tracker)
 
     # ------------------------------------------------------------------
     # AIProvider protocol surface
@@ -156,6 +191,13 @@ class ResilientAIService:
                     "provider.success",
                     provider=provider.name,
                     model=provider.model,
+                    prompt_tokens=result.prompt_tokens,
+                    completion_tokens=result.completion_tokens,
+                )
+                self._record_usage(
+                    provider=result.provider,
+                    model=result.model,
+                    operation="generate",
                     prompt_tokens=result.prompt_tokens,
                     completion_tokens=result.completion_tokens,
                 )
@@ -207,6 +249,13 @@ class ResilientAIService:
                     prompt_tokens=result.prompt_tokens,
                     completion_tokens=result.completion_tokens,
                 )
+                self._record_usage(
+                    provider=result.provider,
+                    model=result.model,
+                    operation="chat",
+                    prompt_tokens=result.prompt_tokens,
+                    completion_tokens=result.completion_tokens,
+                )
                 return result
             except ProviderError as exc:
                 log.warning(
@@ -237,6 +286,17 @@ class ResilientAIService:
                 log.info("provider.embed.attempt", provider=provider.name)
                 vectors = await provider.embed(text)
                 log.info("provider.embed.success", provider=provider.name)
+                # Embedding token counts are not surfaced by the providers
+                # (a tiktoken-based estimate is a future enhancement), so we
+                # record the call with 0 tokens. This still increments the
+                # request count; embedding cost is negligible versus chat.
+                self._record_usage(
+                    provider=provider.name,
+                    model=getattr(provider, "_embedding_model", provider.model),
+                    operation="embed",
+                    prompt_tokens=0,
+                    completion_tokens=0,
+                )
                 return vectors
             except ProviderError as exc:
                 log.warning(

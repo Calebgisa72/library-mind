@@ -50,8 +50,12 @@ PRICING: dict[tuple[str, str], tuple[float, float]] = {
     ("anthropic", "claude-3-5-haiku-latest"): (0.0008, 0.004),
     ("anthropic", "claude-3-5-sonnet-latest"): (0.003, 0.015),
     ("anthropic", "claude-3-haiku-20240307"): (0.00025, 0.00125),
-    # AmaliAI: training credits -- billed at $0 for lab purposes.
-    # Add a real entry here if the provider publishes a price.
+    # AmaliAI
+    ("amaliai", "gpt-4o-mini"): (0.00015, 0.0006),
+    ("amaliai", "gpt-4o"): (0.0025, 0.01),
+    ("amaliai", "text-embedding-3-small"): (0.00002, 0.0),
+    ("amaliai", "text-embedding-3-large"): (0.00013, 0.0),
+    ("amaliai", "text-embedding-ada-002"): (0.00010, 0.0),
 }
 
 

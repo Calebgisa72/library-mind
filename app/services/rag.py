@@ -256,14 +256,6 @@ class RAGService:
             max_tokens=RAG_MAX_TOKENS,
         )
 
-        self._usage_tracker.record(
-            provider=result.provider,
-            model=result.model,
-            operation="generate",
-            prompt_tokens=result.prompt_tokens or 0,
-            completion_tokens=result.completion_tokens or 0,
-        )
-
         avg_relevance = sum(s.score for s in sources) / len(sources)
 
         answer = RAGAnswer(

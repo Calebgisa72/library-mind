@@ -37,8 +37,15 @@ from app.services.summariser import SummariserService
 
 @lru_cache(maxsize=1)
 def get_ai_service() -> ResilientAIService:
-    """Return the process-wide resilient AI orchestrator."""
-    return ResilientAIService.from_settings(get_settings())
+    """Return the process-wide resilient AI orchestrator.
+
+    The usage tracker is injected here so the orchestrator records every
+    successful AI call (generate / chat / embed) at a single chokepoint.
+    """
+    return ResilientAIService.from_settings(
+        get_settings(),
+        usage_tracker=get_usage_tracker(),
+    )
 
 
 @lru_cache(maxsize=1)

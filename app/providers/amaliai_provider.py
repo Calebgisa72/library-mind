@@ -24,6 +24,8 @@ that are *not* 429 indicate a permanent client-side problem and propagate.
 
 from __future__ import annotations
 
+import asyncio
+
 import httpx
 
 from app.core.exceptions import ProviderUnavailableError
@@ -263,9 +265,13 @@ class AmaliAIProvider:
             completion_tokens=usage.get("completion_tokens"),
         )
 
-    @_retry
     async def _do_embed(self, text: str | list[str]) -> list[list[float]]:
-        """Inner embed call -- raises ProviderUnavailableError on 429/5xx."""
+        """Embed one or more texts.
+
+        The AmaliAI gateway returns HTTP 500 when ``input`` is a JSON array
+        (batched request); it only accepts a single string per call. So we
+        issue one request per text, concurrently, and preserve input order.
+        """
         texts = [text] if isinstance(text, str) else list(text)
 
         log.debug(
@@ -274,16 +280,28 @@ class AmaliAIProvider:
             n_texts=len(texts),
         )
 
+        return list(await asyncio.gather(*(self._embed_one(t) for t in texts)))
+
+    @_retry
+    async def _embed_one(self, text: str) -> list[float]:
+        """Embed a single text -- raises ProviderUnavailableError on 429/5xx."""
         response = await self._client.post(
             "/embeddings",
-            json={"model": self._embedding_model, "input": texts},
+            json={"model": self._embedding_model, "input": text},
         )
 
         if response.status_code in _RETRYABLE_STATUSES:
+            body = response.text[:500]
+            log.warning(
+                "amaliai.embed.upstream_error",
+                status=response.status_code,
+                body=body,
+                model=self._embedding_model,
+            )
             raise ProviderUnavailableError(
-                f"AmaliAI embedding returned HTTP {response.status_code}"
+                f"AmaliAI embedding returned HTTP {response.status_code}: {body}"
             )
 
         response.raise_for_status()
         data = response.json()
-        return [item["embedding"] for item in data["data"]]
+        return data["data"][0]["embedding"]
