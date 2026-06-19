@@ -15,7 +15,7 @@ Pipeline::
 
 Design decisions
 ----------------
-* **No rate-limiter.**  The rate limiter is applied at the API layer (Phase 7)
+* **No rate-limiter.**  The rate limiter is applied at the API layer
   uniformly across all endpoints.  Pulling it into the service would
   duplicate the concern and make the constructor overly complex.
 
