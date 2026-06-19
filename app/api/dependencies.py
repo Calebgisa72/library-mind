@@ -83,7 +83,7 @@ def get_embedding_service() -> EmbeddingService:
     return EmbeddingService(
         ai_service=get_ai_service(),
         cache=get_cache(),
-        model=settings.openai_embedding_model,
+        model=settings.active_embedding_model,
     )
 
 

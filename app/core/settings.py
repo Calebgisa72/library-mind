@@ -73,7 +73,7 @@ class Settings(BaseSettings):
     # which we convert to similarity via `1 - distance` before comparing.
     # 0.0 = unrelated, 1.0 = identical. Results below this are discarded.
     # See docs/ARCHITECTURE.md § Distance vs Similarity for the rationale.
-    rag_relevance_threshold: float = Field(default=0.35, ge=0.0, le=1.0)
+    rag_relevance_threshold: float = Field(default=0.25, ge=0.0, le=1.0)
 
     # ── Cache ───────────────────────────────────────────────────────────────
     redis_url: str = "redis://localhost:6379/0"
@@ -102,6 +102,16 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         """Return CORS origins parsed from the comma-separated env value."""
         return [o.strip() for o in self.cors_allowed_origins.split(",") if o.strip()]
+
+    @property
+    def active_embedding_model(self) -> str:
+        """Embedding model name used for embedding cache keys (seed == request)."""
+        for name in self.configured_providers:
+            if name == "amaliai":
+                return self.amaliai_embedding_model
+            if name == "openai":
+                return self.openai_embedding_model
+        return self.openai_embedding_model
 
     @property
     def configured_providers(self) -> list[ProviderName]:

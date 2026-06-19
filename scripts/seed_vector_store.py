@@ -62,7 +62,7 @@ async def _seed() -> None:
     embedding_service = EmbeddingService(
         ai_service=ai_service,
         cache=cache,
-        model=settings.amaliai_embedding_model,
+        model=settings.active_embedding_model,
     )
     vector_store = VectorStore(settings=settings)
 
@@ -74,6 +74,7 @@ async def _seed() -> None:
             "author": b["author"],
             "year": b["year"],
             "genre": b["genre"],
+            "description": b["description"],
         }
         for b in books
     ]

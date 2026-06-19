@@ -44,6 +44,7 @@ class SearchResult:
     id: str
     score: float
     metadata: dict[str, Any]
+    document: str = ""
 
 
 class VectorStore:
@@ -144,18 +145,30 @@ class VectorStore:
         raw = self._collection.query(
             query_embeddings=cast(Any, [embedding]),
             n_results=min(top_k, self._collection.count() or 1),
-            include=cast(Any, ["distances", "metadatas"]),
+            include=cast(Any, ["distances", "metadatas", "documents"]),
         )
         results: dict[str, Any] = cast(Any, raw)
 
         ids: list[str] = results["ids"][0]
         distances: list[float] = results["distances"][0]
         metadatas: list[dict[str, Any]] = results["metadatas"][0]
+        documents_raw = results.get("documents") or [[]]
+        documents: list[str] = documents_raw[0] if documents_raw else []
 
         search_results: list[SearchResult] = []
-        for book_id, distance, metadata in zip(ids, distances, metadatas, strict=False):
+        for index, (book_id, distance, metadata) in enumerate(
+            zip(ids, distances, metadatas, strict=False)
+        ):
             similarity = max(0.0, 1.0 - distance)
-            search_results.append(SearchResult(id=book_id, score=similarity, metadata=metadata))
+            document = documents[index] if index < len(documents) else ""
+            search_results.append(
+                SearchResult(
+                    id=book_id,
+                    score=similarity,
+                    metadata=metadata,
+                    document=document or "",
+                )
+            )
 
         log.debug(
             "vector_store.search",

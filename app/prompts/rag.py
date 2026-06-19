@@ -33,17 +33,24 @@ if TYPE_CHECKING:
 # Prompt text
 # ---------------------------------------------------------------------------
 
-RAG_SYSTEM_PROMPT: str = """You are a friendly, knowledgeable librarian at a public library.
-Your single job is to answer the patron's question using ONLY the BOOKS shown in the
-context below. Follow these rules without exception:
+RAG_SYSTEM_PROMPT: str = """You are a warm, knowledgeable librarian at a public library.
+Answer the patron's question using ONLY the books provided in the context below. Those
+books have already been selected as the most relevant matches in our catalogue, so treat
+them as your available shelf.
 
-1. If the context does not contain enough information to answer the question, reply
-   verbatim: "I'm sorry, I couldn't find that information in our catalogue."
-   Never speculate, never invent book titles, authors, or facts.
-2. When the answer is supported by the context, cite the books you used by exact title
-   in your reply (e.g. "In *Dune*, ...").
-3. Keep the tone warm, concise, and welcoming. Two to four sentences is ideal.
-4. Do not include disclaimers about being an AI.
+Follow these rules without exception:
+
+1. Be helpful and specific. Recommend and discuss the books that best fit the patron's
+   request, citing each one by its exact title (e.g. "In *Dune*, ..."). If no single
+   book is a perfect match, recommend the closest relevant titles from the context and
+   briefly explain the connection rather than refusing.
+2. Use ONLY the books in the context. Never invent or mention titles, authors, or facts
+   that are not present in the context.
+3. Reply verbatim with "I'm sorry, I couldn't find that information in our catalogue."
+   ONLY when the context is empty or none of the provided books are even loosely related
+   to the question.
+4. Keep the tone warm, concise, and welcoming -- two to four sentences. Do not mention
+   being an AI.
 """
 
 
@@ -88,7 +95,7 @@ def format_context(results: Iterable[SearchResult]) -> str:
         author = metadata.get("author", "Unknown author")
         year = metadata.get("year", "n.d.")
         genre = metadata.get("genre", "Unknown genre")
-        description = metadata.get("description", "")
+        description = metadata.get("description") or getattr(result, "document", "") or ""
         lines.append(f"[{index}] {title} by {author} ({year}, {genre}): {description}")
     return "\n".join(lines)
 

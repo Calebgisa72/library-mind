@@ -256,10 +256,24 @@ class RAGService:
             max_tokens=RAG_MAX_TOKENS,
         )
 
+        answer_text = result.text.strip()
+
+        if self._is_refusal(answer_text):
+            log.info("rag.model_refused", retrieved=len(sources))
+            answer = RAGAnswer(
+                answer=REFUSAL_MESSAGE, sources=[], cached=False, avg_relevance=0.0
+            )
+            await self._cache.set(
+                cache_key,
+                self._serialise_for_cache(answer),
+                ttl=_RAG_CACHE_TTL_SECONDS,
+            )
+            return answer
+
         avg_relevance = sum(s.score for s in sources) / len(sources)
 
         answer = RAGAnswer(
-            answer=result.text.strip(),
+            answer=answer_text,
             sources=sources,
             cached=False,
             avg_relevance=avg_relevance,
@@ -275,6 +289,12 @@ class RAGService:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _is_refusal(answer_text: str) -> bool:
+        normalised = " ".join(answer_text.lower().split()).strip(" .!\"'")
+        core = "couldn't find that information in our catalogue"
+        return normalised == REFUSAL_MESSAGE.lower().strip(" .!\"'") or core in normalised
 
     def _make_cache_key(self, question: str) -> str:
         """Build the cache key for a question.
