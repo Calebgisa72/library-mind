@@ -1,7 +1,7 @@
 """Domain exception hierarchy.
 
 A small, intention-revealing exception tree makes the global error
-handler (registered in Phase 7) able to map domain failures to the
+handler able to map domain failures to the
 correct HTTP status code without scattering ``HTTPException`` raises
 across the service layer.
 

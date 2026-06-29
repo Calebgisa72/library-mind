@@ -10,6 +10,13 @@ Scalability considerations: every layer is stateless except for the in-memory st
 
 ## 2. Architecture Diagram
 
+![LibraryMind layered architecture: HTTP client flows through the API, Service, AI Provider, and Infrastructure layers](diagrams/architecture.svg)
+
+Two cross-cutting concerns are drawn as dashed edges because they are wired at a single chokepoint rather than per-caller: the **rate limiter** is acquired inside `RAGService.answer()` (the only enforcement site today — see § Validation Flow), and **usage recording** happens inside `ResilientAIService`, so every `generate`/`chat`/`embed` call is metered exactly once regardless of which service issued it.
+
+<details>
+<summary>Mermaid source (rendered above as <code>diagrams/architecture.svg</code>)</summary>
+
 ```mermaid
 flowchart TD
     Client[HTTP Client] --> Mw
@@ -29,8 +36,9 @@ flowchart TD
         Embed[Embedding Service]
     end
 
-    RAG --> Resilient
     Chat --> RAG
+    RAG --> Embed
+    RAG --> Resilient
     Chat --> Resilient
     Classify --> Resilient
     Summ --> Resilient
@@ -44,9 +52,8 @@ flowchart TD
     end
 
     RAG --> VS
+    RAG --> Cache
     Embed --> Cache
-
-    Services -.uses.-> Infra
 
     subgraph Infra["Layer 4 — Infrastructure"]
         Cache[(Redis Cache<br/>graceful fallback)]
@@ -55,11 +62,13 @@ flowchart TD
         VS[(ChromaDB<br/>vector store)]
     end
 
-    P_OpenAI -.records.-> UT
-    P_Anthropic -.records.-> UT
-    P_AmaliAI -.records.-> UT
-    Resilient -.checks.-> RL
+    RAG -.checks.-> RL
+    Resilient -.records.-> UT
 ```
+
+</details>
+
+> **Regenerating the diagram.** The Mermaid source above is also kept at [`diagrams/architecture.mmd`](diagrams/architecture.mmd). To regenerate the SVG after an edit: `mmdc -i docs/diagrams/architecture.mmd -o docs/diagrams/architecture.svg -b white` (mermaid-cli).
 
 ## 3. Folder Organisation
 
@@ -102,6 +111,11 @@ Tests mirror the package structure (`tests/services/test_rag.py` exercises `app/
 
 The canonical request — a patron asking *"recommend a book about space exploration"* via `POST /search/ask` — flows through every layer.
 
+![Sequence of a POST /search/ask request through the cache, rate limiter, embedding, vector store, and AI provider layers](diagrams/sequence.svg)
+
+<details>
+<summary>Mermaid source (rendered above as <code>diagrams/sequence.svg</code>)</summary>
+
 ```mermaid
 sequenceDiagram
     autonumber
@@ -117,41 +131,53 @@ sequenceDiagram
 
     C->>R: POST /search/ask {question}
     R->>R: Validate (Pydantic)
-    R->>Rag: ask(question)
-    Rag->>Cache: get(hash(question))
+    R->>Rag: answer(question)
+    Rag->>Cache: get(rag key)
     alt cache hit
         Cache-->>Rag: cached response
         Rag-->>R: response (cached=true)
     else cache miss
         Rag->>RL: acquire()
         alt rate-limited
-            RL-->>Rag: RateLimitExceeded
+            RL-->>Rag: raise RateLimitExceededError
+            Note over R: exception handler maps to 429
             Rag-->>R: 429
         else allowed
-            Rag->>Emb: embed(question)
-            Emb->>Cache: get(hash(question))
+            Rag->>Emb: embed_one(question)
+            Emb->>Cache: get(embedding key)
             Cache-->>Emb: miss
-            Emb->>AI: provider.embed(question)
+            Emb->>AI: embed(question)
             AI-->>Emb: vector
             Emb-->>Rag: vector
-            Rag->>VS: query(vector, top_k)
-            VS-->>Rag: candidates
-            Rag->>Rag: filter by threshold
+            Rag->>VS: search(vector, top_k=4)
+            VS-->>Rag: candidates (similarity scores)
+            Rag->>Rag: keep score >= threshold
             alt no candidates pass threshold
-                Rag-->>R: polite refusal, sources=[]
-            else
-                Rag->>AI: generate(prompt + context)
-                AI-->>Rag: answer
+                Rag-->>R: REFUSAL_MESSAGE, sources=[]
+            else candidates remain
+                Rag->>AI: generate(system + context, T=0.3)
                 AI->>UT: record(tokens, cost)
-                Rag->>Cache: set(hash, response)
-                Rag-->>R: response (cached=false)
+                AI-->>Rag: answer text
+                alt model emitted a refusal
+                    Rag->>Cache: set(rag key, refusal)
+                    Rag-->>R: REFUSAL_MESSAGE, sources=[]
+                else grounded answer
+                    Rag->>Cache: set(rag key, response)
+                    Rag-->>R: response (cached=false)
+                end
             end
         end
     end
     R-->>C: JSON
 ```
 
-The chatbot path is identical except the chatbot service also retrieves and truncates conversation history before constructing the prompt, and appends the user message and assistant reply to the conversation store after success.
+</details>
+
+> **Regenerating the diagram.** The Mermaid source above is also kept at [`diagrams/sequence.mmd`](diagrams/sequence.mmd). Render it with `mmdc -i docs/diagrams/sequence.mmd -o docs/diagrams/sequence.svg -b white` (mermaid-cli).
+
+A few details the diagram makes explicit and that the code enforces: the cache is consulted **before** the rate limiter so cache hits cost no budget; the relevance filter is a **similarity** comparison (`score >= rag_relevance_threshold`, default `0.25`); and there are **two** refusal paths — a deterministic one when nothing clears the threshold (no AI call at all) and a second one when the model itself emits the refusal sentence, which is also cached so the off-topic answer stays stable.
+
+The chatbot path reuses only the retrieval half of this flow: `ChatbotService.reply()` calls `RAGService.retrieve_context()` (the embed + vector-search + threshold-filter steps), then prepends the catalogue context to the system prompt, appends the truncated conversation history, and calls `generate_chat`. It does **not** go through the RAG response cache, the rate limiter, or the post-generation refusal check — those are specific to `/search/ask`.
 
 ## 5. Service Boundaries
 
@@ -195,7 +221,7 @@ ChromaDB with `hnsw:space=cosine` returns **cosine distance**, not cosine simila
 similarity = max(0.0, 1.0 - distance)
 ```
 
-The `RAG_RELEVANCE_THRESHOLD` setting is a **similarity** threshold (default `0.35`); results with similarity below it are discarded *after* the conversion. Sources returned in the API response carry the similarity score, never the raw distance, so the contract is consistent.
+The `RAG_RELEVANCE_THRESHOLD` setting is a **similarity** threshold (default `0.25`); results with similarity below it are discarded *after* the conversion. Sources returned in the API response carry the similarity score, never the raw distance, so the contract is consistent.
 
 This is the single most common pitfall in RAG implementations (the lab's own brief calls it out). Centralising the conversion in the RAG service eliminates the class of bugs where one code path uses distance and another uses similarity.
 

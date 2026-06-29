@@ -1,0 +1,46 @@
+flowchart TD
+    Client[HTTP Client] --> Mw
+
+    subgraph API["Layer 1 — API"]
+        Mw[Middleware<br/>CORS · Request-ID · Errors] --> Routers
+        Routers[Routers<br/>search · chat · classify<br/>summarise · health]
+    end
+
+    Routers --> Services
+
+    subgraph Services["Layer 2 — Service"]
+        RAG[RAG Engine]
+        Chat[Chatbot]
+        Classify[Classifier]
+        Summ[Summariser]
+        Embed[Embedding Service]
+    end
+
+    Chat --> RAG
+    RAG --> Embed
+    RAG --> Resilient
+    Chat --> Resilient
+    Classify --> Resilient
+    Summ --> Resilient
+    Embed --> Resilient
+
+    subgraph Providers["Layer 3 — AI Provider"]
+        Resilient[ResilientAIService]
+        Resilient --> P_OpenAI[OpenAIProvider]
+        Resilient --> P_Anthropic[AnthropicProvider]
+        Resilient --> P_AmaliAI[AmaliAIProvider]
+    end
+
+    RAG --> VS
+    RAG --> Cache
+    Embed --> Cache
+
+    subgraph Infra["Layer 4 — Infrastructure"]
+        Cache[(Redis Cache<br/>graceful fallback)]
+        RL[Rate Limiter<br/>token bucket]
+        UT[Usage Tracker<br/>tokens · USD]
+        VS[(ChromaDB<br/>vector store)]
+    end
+
+    RAG -.checks.-> RL
+    Resilient -.records.-> UT

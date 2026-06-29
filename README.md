@@ -411,20 +411,6 @@ We aim for production-grade code throughout. The minimum bar:
 
 The detailed engineering rulebook lives in `Guidelines.md` (git-ignored, internal).
 
-## Documentation map
-
-| File                          | What's in it                                              |
-|-------------------------------|-----------------------------------------------------------|
-| `README.md`                   | This file — overview, setup, command reference            |
-| `docs/PRD.md`                 | Product vision, goals, non-goals, requirements            |
-| `docs/ERD.md`                 | Conceptual data model + storage decisions                 |
-| `docs/API_REFERENCE.md`       | Endpoint contracts, payloads, error envelopes             |
-| `docs/ARCHITECTURE.md`        | Layered design, diagrams, flows, strategy per concern     |
-| `docs/CI.md`                  | CI status (currently disabled) + re-enable instructions   |
-| `Agent.md` *(git-ignored)*    | Instructions for AI coding agents                         |
-| `Guidelines.md` *(git-ignored)* | Engineering rulebook                                    |
-| `handoff.md` *(git-ignored)*  | Phase-by-phase progress log + continuation prompt         |
-
 ## License
 
 MIT. See [`LICENSE`](LICENSE).

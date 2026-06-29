@@ -17,7 +17,7 @@ Design decisions
 * **``overall_sentiment="mixed"``.**  The roadmap notes that "mixed" is the
   natural result of balanced reviews.  The prompt explicitly lists "mixed"
   as a valid value alongside positive/neutral/negative.  When the rubric
-  requires a three-value enum, the caller (Phase 7 router) can map
+  requires a three-value enum, the caller can map
   ``mixed -> neutral`` at the wire boundary if needed; the service returns
   the semantically correct value.
 

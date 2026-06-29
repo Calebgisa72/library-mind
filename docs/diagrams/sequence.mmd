@@ -1,0 +1,52 @@
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant R as Router
+    participant Rag as RAGService
+    participant Cache as Cache
+    participant RL as RateLimiter
+    participant Emb as EmbeddingService
+    participant VS as ChromaDB
+    participant AI as ResilientAIService
+    participant UT as UsageTracker
+
+    C->>R: POST /search/ask {question}
+    R->>R: Validate (Pydantic)
+    R->>Rag: answer(question)
+    Rag->>Cache: get(rag key)
+    alt cache hit
+        Cache-->>Rag: cached response
+        Rag-->>R: response (cached=true)
+    else cache miss
+        Rag->>RL: acquire()
+        alt rate-limited
+            RL-->>Rag: raise RateLimitExceededError
+            Note over R: exception handler maps to 429
+            Rag-->>R: 429
+        else allowed
+            Rag->>Emb: embed_one(question)
+            Emb->>Cache: get(embedding key)
+            Cache-->>Emb: miss
+            Emb->>AI: embed(question)
+            AI-->>Emb: vector
+            Emb-->>Rag: vector
+            Rag->>VS: search(vector, top_k=4)
+            VS-->>Rag: candidates (similarity scores)
+            Rag->>Rag: keep score >= threshold
+            alt no candidates pass threshold
+                Rag-->>R: REFUSAL_MESSAGE, sources=[]
+            else candidates remain
+                Rag->>AI: generate(system + context, T=0.3)
+                AI->>UT: record(tokens, cost)
+                AI-->>Rag: answer text
+                alt model emitted a refusal
+                    Rag->>Cache: set(rag key, refusal)
+                    Rag-->>R: REFUSAL_MESSAGE, sources=[]
+                else grounded answer
+                    Rag->>Cache: set(rag key, response)
+                    Rag-->>R: response (cached=false)
+                end
+            end
+        end
+    end
+    R-->>C: JSON

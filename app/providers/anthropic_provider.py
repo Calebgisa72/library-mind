@@ -8,7 +8,7 @@ Embeddings
 ----------
 Anthropic does not offer an embeddings API. embed() raises
 ProviderUnavailableError immediately; the ResilientAIService falls
-through to the next provider, and the EmbeddingService (Phase 3) will try
+through to the next provider, and the EmbeddingService will try
 OpenAI or AmaliAI.
 
 Token accounting

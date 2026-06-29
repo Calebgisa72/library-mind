@@ -51,8 +51,6 @@ repos:
           - pydantic-settings>=2.6
           - types-redis
         args: ["--config-file=pyproject.toml"]
-        # The app/ package may not exist yet in Phase 0; mypy will run from
-        # Phase 1 onwards once business modules land.
         files: ^app/
 
   # ── Conventional commits (commit message style) ────────────────────────────

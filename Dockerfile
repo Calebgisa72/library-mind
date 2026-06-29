@@ -71,7 +71,6 @@ USER librarymind
 
 EXPOSE 8000
 
-# Healthcheck hits the /health endpoint (Phase 7). Until then it will
 # return a connection error, which is fine — `docker compose` will still
 # start the container; the check just won't report "healthy" yet.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
